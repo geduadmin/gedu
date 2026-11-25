@@ -12,4 +12,6 @@ export const DEFAULT_STAGES = [
   ['Blocked Us', 'blocked', '#b91c1c'],
 ];
 
+export const DEFAULT_ADMIN_NAME = 'Sarah Aljani';
+
 export const DEFAULT_CERTIFICATES = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Other'];

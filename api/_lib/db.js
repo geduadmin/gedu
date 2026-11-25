@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { HttpError } from './http.js';
 import { hashPassword, newId } from './auth.js';
-import { DEFAULT_CERTIFICATES, DEFAULT_STAGES } from './seed.js';
+import { DEFAULT_ADMIN_NAME, DEFAULT_CERTIFICATES, DEFAULT_STAGES } from './seed.js';
 
 let client;
 export function sql() {
@@ -74,11 +74,14 @@ async function bootstrap(q) {
   const [{ n: userCount }] = await q`SELECT count(*)::int AS n FROM users`;
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
+  const name = process.env.ADMIN_NAME?.trim() || DEFAULT_ADMIN_NAME;
   if (userCount === 0 && email && password) {
     await q`INSERT INTO users (id, email, name, role, password_hash)
-            VALUES (${newId()}, ${email}, 'Admin', 'admin', ${hashPassword(password)})
+            VALUES (${newId()}, ${email}, ${name}, 'admin', ${hashPassword(password)})
             ON CONFLICT (email) DO NOTHING`;
   }
+  // Admin created by an earlier version got the placeholder name 'Admin' — give it the real name once.
+  if (email) await q`UPDATE users SET name = ${name}, updated_at = now() WHERE email = ${email} AND role = 'admin' AND name = 'Admin'`;
 }
 
 export const safeUser = (u) =>

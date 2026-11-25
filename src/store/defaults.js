@@ -103,7 +103,7 @@ export function createInitialState() {
     users: [
       {
         id: uid(),
-        name: 'Administrator',
+        name: 'Sarah Aljani',
         email: 'admin@admin.com',
         phone: '',
         password: 'admin123',
@@ -166,7 +166,10 @@ export function migrate(s) {
 
 function migrateBase(s) {
   const base = createInitialState();
-  const users = s.users?.length ? s.users : base.users;
+  // admin placeholder names from earlier versions -> Sarah Aljani
+  const users = (s.users?.length ? s.users : base.users).map((u) =>
+    u.role === 'admin' && u.email === 'admin@admin.com' && ['Administrator', 'Alex Morgan'].includes(u.name) ? { ...u, name: 'Sarah Aljani' } : u,
+  );
   return {
     ...base,
     ...s,
