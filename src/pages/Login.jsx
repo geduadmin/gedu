@@ -4,18 +4,21 @@ import { GraduationCap, TrendingUp, Zap } from 'lucide-react';
 import { useStore } from '../store/StoreContext';
 
 export default function Login() {
-  const { state, user, actions } = useStore();
+  const { state, user, actions, loadError } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   if (user) return <Navigate to="/" replace />;
 
   const admin = state.users.find((u) => u.role === 'admin' && u.email === 'admin@admin.com' && u.password === 'admin123');
   const demoAgent = state.users.find((u) => u.role === 'agent' && u.email === 'rasha@leadflow.demo' && u.password === '123456');
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setError(actions.login(email, password) ?? '');
+    setBusy(true);
+    setError((await actions.login(email, password)) ?? '');
+    setBusy(false);
   };
   const fill = (u, p) => {
     setEmail(u);
@@ -62,9 +65,9 @@ export default function Login() {
             <span>Password</span>
             <input className="input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </label>
-          {error && <div className="error">{error}</div>}
-          <button className="btn primary" style={{ justifyContent: 'center', padding: '11px' }}>
-            Sign in
+          {(error || loadError) && <div className="error">{error || loadError}</div>}
+          <button className="btn primary" style={{ justifyContent: 'center', padding: '11px' }} disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
           </button>
           {(admin || demoAgent) && (
             <div className="card card-pad stack" style={{ gap: 8, boxShadow: 'none', background: 'var(--surface-2)' }}>

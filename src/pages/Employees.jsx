@@ -21,7 +21,8 @@ export default function Employees() {
   const remove = (u, leads) => {
     if (u.id === me.id) return alert("You can't delete your own account.");
     if (leads > 0) return alert(`${u.name} still has ${leads} leads. Reassign them first (or deactivate the account instead).`);
-    if (confirm(`Delete ${u.name}? Their past activity stays in the statistics.`)) actions.deleteUser(u.id);
+    if (confirm(`Delete ${u.name}? Their past activity stays in the statistics.`))
+      actions.deleteUser(u.id).then((err) => err && alert(err));
   };
 
   return (
@@ -108,18 +109,22 @@ function UserForm({ initial, onClose }) {
   const isNew = !initial.id;
   const [f, setF] = useState({ name: '', email: '', phone: '', password: '', role: 'agent', active: true, ...initial, ...(isNew ? {} : { password: '' }) });
   const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
 
-  const save = () => {
+  const save = async () => {
     if (!f.name.trim() || !f.email.trim()) return setErr('Name and email are required');
     const clash = state.users.find((u) => u.email.toLowerCase() === f.email.trim().toLowerCase() && u.id !== initial.id);
     if (clash) return setErr('Another account already uses this email');
-    if (isNew && f.password.length < 6) return setErr('Password must be at least 6 characters');
-    if (!isNew && f.password && f.password.length < 6) return setErr('Password must be at least 6 characters');
+    if (isNew && f.password.length < 8) return setErr('Password must be at least 8 characters');
+    if (!isNew && f.password && f.password.length < 8) return setErr('Password must be at least 8 characters');
     if (initial.id === me.id && (!f.active || f.role !== 'admin')) return setErr("You can't deactivate or demote your own account");
     const data = { name: f.name.trim(), email: f.email.trim(), phone: f.phone, role: f.role, active: f.active };
     if (f.password) data.password = f.password;
-    isNew ? actions.addUser(data) : actions.updateUser(initial.id, data);
+    setSaving(true);
+    const error = await (isNew ? actions.addUser(data) : actions.updateUser(initial.id, data));
+    setSaving(false);
+    if (error) return setErr(error);
     onClose();
   };
 
@@ -130,8 +135,8 @@ function UserForm({ initial, onClose }) {
       footer={
         <>
           <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={save}>
-            {isNew ? <><Plus size={15} /> Add</> : 'Save'}
+          <button className="btn primary" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : isNew ? <><Plus size={15} /> Add</> : 'Save'}
           </button>
         </>
       }

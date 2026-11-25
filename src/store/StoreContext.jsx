@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { loadState, saveState } from '../lib/idb';
-import { uid, nowIso } from '../lib/utils';
+import { api, checkHealth } from '../lib/api';
+import { applyDocs, compactOps, diffState, emptyRemoteState, fetchChanges } from './remote';
+import { nowIso, readFileAsDataUrl, uid } from '../lib/utils';
 import { ACTIVITY_TYPES, createInitialState, emptyFlags, migrate } from './defaults';
 // Sample-data generator is a LOCAL-ONLY file (git-ignored). When it isn't there — e.g. on
 // GitHub / Vercel — the app starts clean and the "Load sample data" buttons are hidden.
@@ -67,49 +69,234 @@ function buildLead(s, data, by) {
 
 /* ---------- provider ---------- */
 
+const LOCAL_MAX_FILE = 10 * 1024 * 1024;
+const REMOTE_MAX_FILE = 4 * 1024 * 1024; // Vercel Functions accept up to 4.5 MB per request
+const SYNC_CHUNK = 300;
+const POLL_MS = 15000;
+
+/** Link to download a lead file (server file, or old in-browser file). */
+export const fileHref = (f) =>
+  f.path ? `/api/files?path=${encodeURIComponent(f.path)}&name=${encodeURIComponent(f.name)}` : f.dataUrl;
+
 export function StoreProvider({ children }) {
+  const [mode, setMode] = useState(null); // 'local' (this browser only) | 'remote' (server database)
+  const [health, setHealth] = useState(null);
   const [state, setState] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [sessionId, setSessionId] = useState(() => localStorage.getItem(SESSION_KEY));
+  const [sessionId, setSessionId] = useState(() => localStorage.getItem(SESSION_KEY)); // local mode
+  const [meId, setMeId] = useState(null); // remote mode
+  const [syncStatus, setSyncStatus] = useState('saved'); // saved | saving | error
+  const [syncError, setSyncError] = useState('');
   const ready = useRef(false);
+  // remote sync bookkeeping: last state known to match the server, unsent changes, data cursor
+  const remote = useRef({ synced: null, queue: [], flushing: false, cursor: '', retry: null, version: 0 });
 
+  /* ----- remote helpers (only use refs and state setters, so they are safe in effects) ----- */
+  const signedOut = () => {
+    const r = remote.current;
+    r.synced = null;
+    r.queue = [];
+    r.cursor = '';
+    setMeId(null);
+    setState(emptyRemoteState());
+  };
+
+  const loadRemote = async () => {
+    try {
+      const res = await fetchChanges('', 0);
+      const st = applyDocs(emptyRemoteState(res.users), res.docs, res.leadIds);
+      const r = remote.current;
+      r.synced = st;
+      r.cursor = res.cursor;
+      r.queue = [];
+      setMeId(res.me.id);
+      setState(st);
+      setSyncStatus('saved');
+      setSyncError('');
+      setLoadError(null);
+    } catch (e) {
+      if (e.status === 401) signedOut();
+      else {
+        setLoadError(e.message);
+        setState((s) => s ?? emptyRemoteState());
+      }
+    }
+  };
+
+  const flush = async () => {
+    const r = remote.current;
+    if (r.flushing) return;
+    r.flushing = true;
+    clearTimeout(r.retry);
+    setSyncStatus('saving');
+    try {
+      while (r.queue.length) {
+        r.queue = compactOps(r.queue);
+        const chunk = r.queue.slice(0, SYNC_CHUNK);
+        try {
+          await api('sync', { method: 'POST', body: { ops: chunk } });
+          r.queue = r.queue.slice(chunk.length);
+        } catch (e) {
+          if (e.status === 401) {
+            signedOut();
+            return;
+          }
+          if (e.status >= 400 && e.status < 500) {
+            // The server refused the change: show the error and reload the real data.
+            r.queue = [];
+            setSyncStatus('error');
+            setSyncError(e.message);
+            r.flushing = false;
+            await loadRemote();
+            setSyncStatus('error');
+            setSyncError(`${e.message} The change was not saved.`);
+            return;
+          }
+          // network / server problem: keep the changes and retry
+          setSyncStatus('error');
+          setSyncError(`${e.message}. Retrying…`);
+          r.retry = setTimeout(() => flush(), 5000);
+          return;
+        }
+      }
+      setSyncStatus('saved');
+      setSyncError('');
+    } finally {
+      r.flushing = false;
+    }
+  };
+
+  /* ----- startup: server database if the API is configured, otherwise this browser ----- */
   useEffect(() => {
-    loadState()
-      .then(async (s) => {
+    let cancelled = false;
+    (async () => {
+      const h = await checkHealth();
+      if (cancelled) return;
+      const useRemote = import.meta.env.PROD || !!h?.db;
+      setHealth(h);
+      setMode(useRemote ? 'remote' : 'local');
+      if (useRemote) {
+        if (!h?.db || !h?.session) return setState(emptyRemoteState()); // setup screen explains what's missing
+        await loadRemote();
+        return;
+      }
+      try {
+        const s = await loadState();
         // First run (or an untouched install): sample data, only where the local demo file exists.
         if (!s) return setState(await withDemo(createInitialState()));
         const m = migrate(s);
         const pristine = !s.demoSeeded && m.leads.length === 0;
         setState(pristine ? await withDemo(m) : m);
-      })
-      .catch((e) => {
+      } catch (e) {
         console.error(e);
         setLoadError(String(e));
         setState(createInitialState());
-      });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* ----- local mode: save the whole state in this browser ----- */
   useEffect(() => {
-    if (!state) return;
+    if (mode !== 'local' || !state) return;
     if (!ready.current) {
       ready.current = true;
       if (loadError) return; // don't overwrite storage we failed to read
     }
     saveState(state).catch((e) => console.error('Save failed', e));
-  }, [state, loadError]);
+  }, [state, loadError, mode]);
 
-  const user = useMemo(
-    () => state?.users.find((u) => u.id === sessionId && u.active) ?? null,
-    [state, sessionId],
-  );
+  /* ----- remote mode: send every local change to the server ----- */
+  useEffect(() => {
+    const r = remote.current;
+    if (mode !== 'remote' || !state || !r.synced || state === r.synced) return;
+    const ops = diffState(r.synced, state);
+    r.synced = state;
+    if (ops.length) {
+      r.version++;
+      r.queue.push(...ops);
+      flush();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, mode]);
+
+  /* ----- remote mode: pick up teammates' changes ----- */
+  useEffect(() => {
+    if (mode !== 'remote' || !meId) return;
+    let stopped = false;
+    const tick = async () => {
+      const r = remote.current;
+      if (stopped || document.hidden || r.flushing || r.queue.length || !r.synced) return;
+      const version = r.version;
+      try {
+        const res = await fetchChanges(r.cursor, 60);
+        // skip if something changed locally meanwhile — the next tick re-reads (60 s overlap)
+        if (stopped || r.version !== version || r.queue.length || r.flushing || !r.synced) return;
+        r.cursor = res.cursor;
+        r.synced = { ...applyDocs(r.synced, res.docs, res.leadIds), users: res.users };
+        setState((s) => ({ ...applyDocs(s, res.docs, res.leadIds), users: res.users }));
+      } catch (e) {
+        if (e.status === 401) signedOut();
+      }
+    };
+    const timer = setInterval(tick, POLL_MS);
+    const onFocus = () => tick();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, meId]);
+
+  // warn before closing the tab with unsaved changes
+  useEffect(() => {
+    const onLeave = (e) => {
+      if (remote.current.queue.length || remote.current.flushing) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onLeave);
+    return () => window.removeEventListener('beforeunload', onLeave);
+  }, []);
+
+  const user = useMemo(() => {
+    if (!state) return null;
+    const id = mode === 'remote' ? meId : sessionId;
+    return state.users.find((u) => u.id === id && u.active) ?? null;
+  }, [state, sessionId, meId, mode]);
 
   const actions = useMemo(() => {
     const update = (fn) => setState((s) => fn(s));
-    const me = () => sessionId;
+    const isRemote = mode === 'remote';
+    const me = () => (isRemote ? meId : sessionId);
+    const maxFileBytes = isRemote ? REMOTE_MAX_FILE : LOCAL_MAX_FILE;
+    const addFileMeta = (leadId, file) =>
+      update((s) => ({
+        ...s,
+        leads: s.leads.map((l) => (l.id === leadId ? { ...l, files: [...l.files, { id: uid(), uploadedAt: nowIso(), ...file }] } : l)),
+        activities: [...s.activities, activity(leadId, me(), 'file', { text: `Uploaded ${file.name}` })],
+      }));
 
     return {
-      /* auth */
-      login(email, password) {
+      maxFileBytes,
+
+      /* auth — return an error message, or null on success */
+      async login(email, password) {
+        if (isRemote) {
+          try {
+            await api('auth', { method: 'POST', body: { action: 'login', email, password } });
+            await loadRemote();
+            return null;
+          } catch (e) {
+            return e.message;
+          }
+        }
         const u = state.users.find((x) => x.email.trim().toLowerCase() === email.trim().toLowerCase());
         if (!u || u.password !== password) return 'Wrong email or password';
         if (!u.active) return 'This account is deactivated';
@@ -117,22 +304,54 @@ export function StoreProvider({ children }) {
         setSessionId(u.id);
         return null;
       },
-      logout() {
+      async logout() {
+        if (isRemote) {
+          if (remote.current.queue.length) await flush();
+          await api('auth', { method: 'POST', body: { action: 'logout' } }).catch(() => {});
+          signedOut();
+          return;
+        }
         localStorage.removeItem(SESSION_KEY);
         setSessionId(null);
       },
 
-      /* users */
-      addUser(data) {
-        const id = uid();
-        update((s) => ({ ...s, users: [...s.users, { active: true, role: 'agent', phone: '', ...data, id, createdAt: nowIso() }] }));
-        return id;
+      /* users — return an error message, or null on success */
+      async addUser(data) {
+        if (isRemote) {
+          try {
+            const { user: u } = await api('users', { method: 'POST', body: data });
+            update((s) => ({ ...s, users: [...s.users, u] }));
+            return null;
+          } catch (e) {
+            return e.message;
+          }
+        }
+        update((s) => ({ ...s, users: [...s.users, { active: true, role: 'agent', phone: '', ...data, id: uid(), createdAt: nowIso() }] }));
+        return null;
       },
-      updateUser(id, patch) {
+      async updateUser(id, patch) {
+        if (isRemote) {
+          try {
+            const { user: u } = await api(`users?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: patch });
+            update((s) => ({ ...s, users: s.users.map((x) => (x.id === id ? u : x)) }));
+            return null;
+          } catch (e) {
+            return e.message;
+          }
+        }
         update((s) => ({ ...s, users: s.users.map((u) => (u.id === id ? { ...u, ...patch } : u)) }));
+        return null;
       },
-      deleteUser(id) {
+      async deleteUser(id) {
+        if (isRemote) {
+          try {
+            await api(`users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+          } catch (e) {
+            return e.message;
+          }
+        }
         update((s) => ({ ...s, users: s.users.filter((u) => u.id !== id) }));
+        return null;
       },
       reassignLeads(fromId, toId) {
         update((s) => ({
@@ -223,18 +442,39 @@ export function StoreProvider({ children }) {
       deleteActivity(id) {
         update((s) => ({ ...s, activities: s.activities.filter((a) => a.id !== id) }));
       },
-      addFile(leadId, file) {
-        update((s) => ({
-          ...s,
-          leads: s.leads.map((l) => (l.id === leadId ? { ...l, files: [...l.files, { id: uid(), uploadedAt: nowIso(), ...file }] } : l)),
-          activities: [...s.activities, activity(leadId, me(), 'file', { text: `Uploaded ${file.name}` })],
-        }));
+      /** Upload a file to a lead. Returns an error message, or null. */
+      async uploadFile(leadId, file) {
+        if (file.size > maxFileBytes) return `${file.name} is larger than ${maxFileBytes / 1024 / 1024} MB`;
+        if (isRemote) {
+          try {
+            const res = await api(`files?leadId=${encodeURIComponent(leadId)}&name=${encodeURIComponent(file.name)}`, {
+              method: 'POST',
+              raw: file,
+              headers: { 'Content-Type': file.type || 'application/octet-stream' },
+            });
+            addFileMeta(leadId, { name: file.name, size: file.size, type: file.type, path: res.path });
+            return null;
+          } catch (e) {
+            return `${file.name}: ${e.message}`;
+          }
+        }
+        addFileMeta(leadId, { name: file.name, size: file.size, type: file.type, dataUrl: await readFileAsDataUrl(file) });
+        return null;
       },
-      removeFile(leadId, fileId) {
+      /** Remove a file from a lead (and from server storage). Returns an error message, or null. */
+      async removeFile(leadId, file) {
+        if (isRemote && file.path) {
+          try {
+            await api(`files?path=${encodeURIComponent(file.path)}`, { method: 'DELETE' });
+          } catch (e) {
+            if (e.status !== 404) return e.message;
+          }
+        }
         update((s) => ({
           ...s,
-          leads: s.leads.map((l) => (l.id === leadId ? { ...l, files: l.files.filter((f) => f.id !== fileId) } : l)),
+          leads: s.leads.map((l) => (l.id === leadId ? { ...l, files: l.files.filter((f) => f.id !== file.id) } : l)),
         }));
+        return null;
       },
 
       /* meetings */
@@ -314,22 +554,28 @@ export function StoreProvider({ children }) {
 
       /* data management */
       replaceState(next) {
+        if (isRemote) return; // restoring a browser backup over the shared database is not supported
         setState(migrate(next));
       },
       loadDemo() {
-        if (!HAS_DEMO) return;
+        if (!HAS_DEMO || isRemote) return;
         loadDemoModule().then((mod) => update((s) => mod.withDemoData(s)));
       },
       resetAll() {
+        if (isRemote) return;
         const fresh = { ...createInitialState(), demoSeeded: true }; // stay empty, no auto sample data
         setState(fresh);
         localStorage.removeItem(SESSION_KEY);
         setSessionId(null);
       },
     };
-  }, [state, sessionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, sessionId, meId, mode]);
 
-  const value = useMemo(() => ({ state, user, actions, loadError }), [state, user, actions, loadError]);
+  const value = useMemo(
+    () => ({ state, user, actions, loadError, mode, health, syncStatus, syncError, demoAvailable: HAS_DEMO && mode === 'local' }),
+    [state, user, actions, loadError, mode, health, syncStatus, syncError],
+  );
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  Bell, CalendarClock, FileSpreadsheet, KanbanSquare, LayoutDashboard, LogOut, PhoneOutgoing, Search, Settings, Table2, Users, Zap,
+  AlertTriangle, Bell, CalendarClock, Check, CloudUpload, FileSpreadsheet, KanbanSquare, LayoutDashboard, LogOut, PhoneOutgoing, Search, Settings, Table2, Users, Zap,
 } from 'lucide-react';
 import { useLookups, useStore } from '../store/StoreContext';
 import { fmtDateTime } from '../lib/utils';
@@ -21,7 +21,7 @@ function useOutsideClose(open, setOpen) {
 }
 
 export default function Layout() {
-  const { state, user, actions } = useStore();
+  const { state, user, actions, mode, syncStatus, syncError } = useStore();
   const { stageById, leadById, agents } = useLookups();
   const navigate = useNavigate();
   const isAdmin = user.role === 'admin';
@@ -140,6 +140,12 @@ export default function Layout() {
             <input className="input" placeholder="Search leads by name, phone, email…" value={q} onChange={(e) => setQ(e.target.value)} />
           </form>
           <div className="spacer" />
+          {mode === 'remote' && (
+            <span className={`sync-chip ${syncStatus}`} title={syncError || 'All changes are saved to the shared database'}>
+              {syncStatus === 'saving' ? <CloudUpload size={14} /> : syncStatus === 'error' ? <AlertTriangle size={14} /> : <Check size={14} />}
+              {syncStatus === 'saving' ? 'Saving…' : syncStatus === 'error' ? 'Not saved' : 'Saved'}
+            </span>
+          )}
 
           <div ref={bellRef} style={{ position: 'relative' }}>
             <button className="round-btn" title="Upcoming meetings" onClick={() => setBellOpen((v) => !v)}>
@@ -187,6 +193,7 @@ export default function Layout() {
           </div>
         </header>
         <main className="main">
+          {mode === 'remote' && syncStatus === 'error' && syncError && <div className="notice no-print" style={{ marginBottom: 16 }}>{syncError}</div>}
           <Outlet />
         </main>
       </div>

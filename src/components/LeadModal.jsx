@@ -3,12 +3,11 @@ import {
   ArrowRightLeft, CalendarClock, CalendarPlus, Download, FileText, MessageCircle, Paperclip, Phone, PhoneCall,
   Plus, Repeat, StickyNote, Trash2, Upload, UserPlus,
 } from 'lucide-react';
-import { useLookups, useStore } from '../store/StoreContext';
+import { fileHref, useLookups, useStore } from '../store/StoreContext';
 import { ACTIVITY_TYPES, FLAGS, GENDERS, LOGGABLE_ACTIVITIES } from '../store/defaults';
-import { fmtBytes, fmtDateTime, fromLocalInput, readFileAsDataUrl, timeAgo, toLocalInput } from '../lib/utils';
+import { fmtBytes, fmtDateTime, fromLocalInput, timeAgo, toLocalInput } from '../lib/utils';
 import { Modal, StageBadge, Tabs } from './ui';
 
-const MAX_FILE = 10 * 1024 * 1024;
 
 const ACT_ICONS = {
   created: UserPlus,
@@ -365,16 +364,19 @@ function FilesTab({ lead }) {
   const [over, setOver] = useState(false);
   const [err, setErr] = useState('');
 
+  const [uploading, setUploading] = useState(0);
+
   const add = async (fileList) => {
     setErr('');
-    for (const f of fileList) {
-      if (f.size > MAX_FILE) {
-        setErr(`${f.name} is larger than 10 MB`);
-        continue;
-      }
-      const dataUrl = await readFileAsDataUrl(f);
-      actions.addFile(lead.id, { name: f.name, size: f.size, type: f.type, dataUrl });
+    const files = [...fileList];
+    setUploading(files.length);
+    const errors = [];
+    for (const f of files) {
+      const e = await actions.uploadFile(lead.id, f);
+      if (e) errors.push(e);
+      setUploading((n) => n - 1);
     }
+    setErr(errors.join(' · '));
   };
 
   return (
@@ -394,7 +396,7 @@ function FilesTab({ lead }) {
         }}
       >
         <Upload size={22} />
-        <div>Drop files here or click to upload (max 10 MB each)</div>
+        <div>{uploading ? `Uploading ${uploading} file${uploading === 1 ? '' : 's'}…` : `Drop files here or click to upload (max ${actions.maxFileBytes / 1024 / 1024} MB each)`}</div>
         <input ref={input} type="file" multiple hidden onChange={(e) => { add(e.target.files); e.target.value = ''; }} />
       </div>
       {err && <div className="error">{err}</div>}
@@ -413,10 +415,14 @@ function FilesTab({ lead }) {
                 <td className="muted">{fmtBytes(f.size)}</td>
                 <td className="muted">{fmtDateTime(f.uploadedAt)}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <a className="icon-btn" href={f.dataUrl} download={f.name} title="Download">
+                  <a className="icon-btn" href={fileHref(f)} download={f.name} title="Download">
                     <Download size={15} />
                   </a>
-                  <button className="icon-btn" title="Delete" onClick={() => confirm(`Delete ${f.name}?`) && actions.removeFile(lead.id, f.id)}>
+                  <button className="icon-btn" title="Delete" onClick={async () => {
+                      if (!confirm(`Delete ${f.name}?`)) return;
+                      const e = await actions.removeFile(lead.id, f);
+                      if (e) setErr(e);
+                    }}>
                     <Trash2 size={15} />
                   </button>
                 </td>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarClock, ChevronDown, Database, Download, FileSpreadsheet, KanbanSquare, LayoutDashboard, Printer, Trophy, Users } from 'lucide-react';
-import { HAS_DEMO, useLookups, useStore } from '../store/StoreContext';
+import { useLookups, useStore } from '../store/StoreContext';
 import { computeLeaderboard, computeMonth, computeTrend, OUTCOMES, pipelineCounts } from '../lib/stats';
 import { exportAllData, exportMonthReport, exportPipeline } from '../lib/excel';
 import { monthKey as currentMonth, monthLabel, shiftMonth } from '../lib/utils';
@@ -10,7 +10,7 @@ import EmployeeReport, { ActivityHero, funnelSteps, KpiGrid, TREND_SERIES, withI
 import MeetingsList from '../components/MeetingsList';
 
 export default function Dashboard() {
-  const { state, user, actions } = useStore();
+  const { state, user, actions, demoAvailable } = useStore();
   const lookups = useLookups();
   const [month, setMonth] = useState(currentMonth());
   const [tab, setTab] = useState('overview');
@@ -40,9 +40,9 @@ export default function Dashboard() {
 
       {isEmpty && (
         <div className="notice row wrap no-print" style={{ marginBottom: 20 }}>
-          <span>No data yet. Add employees and leads, or import an Excel sheet{HAS_DEMO ? ', or load sample data to explore' : ''}.</span>
+          <span>No data yet. Add employees and leads, or import an Excel sheet{demoAvailable ? ', or load sample data to explore' : ''}.</span>
           <span className="spacer" />
-          {HAS_DEMO && (
+          {demoAvailable && (
             <button className="btn sm" onClick={actions.loadDemo}>
               <Database size={13} /> Load sample data
             </button>

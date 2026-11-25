@@ -10,6 +10,7 @@ import Meetings from './pages/Meetings';
 import Import from './pages/Import';
 import Employees from './pages/Employees';
 import Settings from './pages/Settings';
+import Setup from './pages/Setup';
 
 function RequireAuth({ children }) {
   const { user } = useStore();
@@ -27,8 +28,9 @@ function Home() {
 }
 
 function AppRoutes() {
-  const { state } = useStore();
+  const { state, mode, health } = useStore();
   if (!state) return <div className="empty">Loading…</div>;
+  if (mode === 'remote' && !(health?.db && health?.session)) return <Setup health={health} />;
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

@@ -97,6 +97,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: rgba(246, 247, 251, .85); backdrop-filter: blur(10px); border-bottom: 1px solid transparent;
 }
 .topbar .search .input { width: 320px; background: var(--surface); border-color: var(--line); border-radius: 12px; }
+.sync-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); }
+.sync-chip.saved svg { color: var(--up); }
+.sync-chip.saving svg { color: var(--primary); }
+.sync-chip.error { color: #9a3412; background: #fff7ed; border-color: #fed7aa; }
 .round-btn {
   width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--surface);
   border: 1px solid var(--line); cursor: pointer; position: relative; color: var(--ink-2);

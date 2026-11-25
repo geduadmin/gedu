@@ -30,6 +30,23 @@ Optional: a local, git-ignored `src/store/demo.local.js` generates sample data f
 - **Calls, messages, follow-ups:** activities logged in the month.
 - **Meetings:** meetings dated in the month.
 
-## Data storage (current stage)
+## Data storage
 
-Data is saved in the browser's IndexedDB, through `src/store/StoreContext.jsx` and `src/lib/idb.js`. To share data between employees, the next step is a hosted database (e.g. Supabase) with real authentication. Then: push to GitHub and deploy to Vercel. `vercel.json` already has the SPA rewrite.
+| Where | Mode | Data |
+|---|---|---|
+| Vercel (production) | **Server** | Neon Postgres (records) + Vercel Blob, private store (lead files) |
+| `npm run dev` with `DATABASE_URL` in `.env.local` | Server | same as production |
+| `npm run dev` without a database | Local | this browser only (IndexedDB) |
+
+### Vercel setup
+1. **Storage → Create Database → Neon (Postgres)**, connect it to this project (adds `DATABASE_URL`).
+2. **Storage → Create → Blob**, choose **Private**, connect it to this project (for lead files).
+3. **Settings → Environment Variables**: add `SESSION_SECRET` (32+ random characters), `ADMIN_EMAIL`, `ADMIN_PASSWORD` (8+ characters).
+4. Redeploy. Tables are created automatically on first use, and the first admin is created from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+
+The app shows a setup checklist until the database and session secret are configured.
+
+### How it works
+- `api/` holds Vercel Functions: `auth` (sign-in with a signed, HttpOnly cookie; scrypt password hashes), `data` (paged download of changes), `sync` (saves changes in one transaction), `users`, `files` (private Blob, max 4 MB per file), `health`.
+- The server enforces permissions: employees only read and change their own leads (and their activity, meetings and files); statuses, settings and users are admin-only.
+- The browser saves each change immediately and checks for teammates' changes every 15 seconds.

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Database, Download, Plus, RotateCcw, Trash2, Upload } from 'lucide-react';
-import { HAS_DEMO, useLookups, useStore } from '../store/StoreContext';
+import { useLookups, useStore } from '../store/StoreContext';
 import { STAGE_KINDS } from '../store/defaults';
 
 export default function Settings() {
@@ -171,7 +171,8 @@ function CertificatesCard() {
 }
 
 function DataCard() {
-  const { state, actions } = useStore();
+  const { state, actions, mode, demoAvailable } = useStore();
+  const remote = mode === 'remote';
   const input = useRef(null);
 
   const backup = () => {
@@ -199,21 +200,25 @@ function DataCard() {
       <div className="card-head"><h3>Data</h3></div>
       <div className="card-body stack">
         <div className="notice">
-          For now, data is saved in this browser only. Once we connect a database (next step), every employee will share the same live data from any computer.
+          {remote
+            ? 'Data is saved in the shared database — every employee sees the same live data from any computer. Changes save automatically.'
+            : 'Local mode: data is saved in this browser only.'}
         </div>
         <div className="row wrap">
           <button className="btn" onClick={backup}><Download size={15} /> Download backup</button>
-          <button className="btn" onClick={() => input.current.click()}><Upload size={15} /> Restore backup</button>
+          {!remote && <button className="btn" onClick={() => input.current.click()}><Upload size={15} /> Restore backup</button>}
           <input ref={input} type="file" accept=".json" hidden onChange={(e) => { restore(e.target.files[0]); e.target.value = ''; }} />
-          {HAS_DEMO && (
+          {demoAvailable && (
             <button className="btn" onClick={() => confirm('Add sample employees, leads and meetings?') && actions.loadDemo()}>
               <Database size={15} /> Load sample data
             </button>
           )}
           <span className="spacer" />
-          <button className="btn danger" onClick={() => confirm('Delete EVERYTHING and start fresh? Download a backup first if needed.') && actions.resetAll()}>
-            <RotateCcw size={15} /> Reset all data
-          </button>
+          {!remote && (
+            <button className="btn danger" onClick={() => confirm('Delete EVERYTHING and start fresh? Download a backup first if needed.') && actions.resetAll()}>
+              <RotateCcw size={15} /> Reset all data
+            </button>
+          )}
         </div>
       </div>
     </div>
