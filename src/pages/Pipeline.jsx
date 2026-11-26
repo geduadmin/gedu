@@ -214,7 +214,7 @@ export default function Pipeline() {
                       )}
                     </div>
                     <div className="foot">
-                      <Clock size={11} /> {timeAgo(l.lastContactAt)}
+                      {l.lastContactAt && <><Clock size={11} /> {timeAgo(l.lastContactAt)}</>}
                       <span className="spacer" />
                       <FlagIcons flags={l.flags} />
                       {isAdmin && <Avatar name={userById[l.ownerId]?.name} sm />}

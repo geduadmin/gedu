@@ -78,7 +78,7 @@ const AR = {
   "Details": "التفاصيل",
   "Activity & calls": "النشاط والمكالمات",
   "Files ({n})": "الملفات ({n})",
-  "Owner: {owner} · Created {created} · Last contact {last}": "المسؤول: {owner} · أُنشئ {created} · آخر تواصل {last}",
+  "Owner: {owner} · Created {created}": "المسؤول: {owner} · أُنشئ {created}",
   "Moved to {stage}": "نُقل إلى {stage}",
   "a deleted stage": "حالة محذوفة",
   "answered": "تم الرد",

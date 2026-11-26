@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRightLeft, CalendarClock, CalendarPlus, Download, FileText, MessageCircle, Paperclip, Phone, PhoneCall,
   Plus, Repeat, StickyNote, Trash2, Upload, UserPlus,
@@ -67,6 +67,16 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
   );
   const [error, setError] = useState('');
   const initial = useRef(draft);
+
+  // The status can change while the form is open (e.g. adding a meeting moves the lead).
+  // Show it, unless the person already picked another status in the form.
+  const liveStageId = lead?.stageId;
+  useEffect(() => {
+    const was = initial.current.stageId;
+    if (!liveStageId || liveStageId === was) return;
+    setDraft((d) => (d.stageId === was ? { ...d, stageId: liveStageId } : d));
+    initial.current = { ...initial.current, stageId: liveStageId };
+  }, [liveStageId]);
 
   if (!isNew && !lead) return null; // deleted while open
 
@@ -271,7 +281,8 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
       {tab === 'meetings' && <MeetingsTab lead={lead} />}
       {!isNew && tab === 'details' && (
         <div className="small muted" style={{ marginTop: 12 }}>
-          {t('Owner: {owner} · Created {created} · Last contact {last}', { owner: userById[lead.ownerId]?.name ?? '—', created: fmtDateTime(lead.createdAt), last: timeAgo(lead.lastContactAt) })}
+          {t('Owner: {owner} · Created {created}', { owner: userById[lead.ownerId]?.name ?? '—', created: fmtDateTime(lead.createdAt) })}
+          {lead.lastContactAt && ` · ${t('Last contact: {when}', { when: timeAgo(lead.lastContactAt) })}`}
         </div>
       )}
     </Modal>

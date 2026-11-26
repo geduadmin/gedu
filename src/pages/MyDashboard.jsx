@@ -53,7 +53,7 @@ export default function MyDashboard() {
                     <td><b>{l.name}</b></td>
                     <td><bdi dir="ltr">{l.phone}</bdi></td>
                     <td><StageBadge stage={stageById[l.stageId]} /></td>
-                    <td className="muted">{t('Last contact: {when}', { when: timeAgo(l.lastContactAt) })}</td>
+                    <td className="muted">{l.lastContactAt && t('Last contact: {when}', { when: timeAgo(l.lastContactAt) })}</td>
                   </tr>
                 ))}
               </tbody>

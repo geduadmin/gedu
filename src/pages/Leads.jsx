@@ -50,7 +50,7 @@ export default function Leads() {
       { key: 'certificateStage', label: t('Certificate'), get: (l) => l.certificateStage, render: (l) => t(l.certificateStage) },
       { key: 'flags', label: t('Contact'), get: (l) => Object.values(l.flags).filter(Boolean).length, render: (l) => <FlagIcons flags={l.flags} /> },
       { key: 'createdAt', label: t('Created'), get: (l) => l.createdAt, render: (l) => fmtDate(l.createdAt) },
-      { key: 'lastContactAt', label: t('Last contact'), get: (l) => l.lastContactAt ?? '', render: (l) => <span title={fmtDate(l.lastContactAt)}>{timeAgo(l.lastContactAt)}</span> },
+      { key: 'lastContactAt', label: t('Last contact'), get: (l) => l.lastContactAt ?? '', render: (l) => l.lastContactAt && <span title={fmtDate(l.lastContactAt)}>{timeAgo(l.lastContactAt)}</span> },
       ...state.customColumns.map((c) => ({
         key: 'c_' + c.id,
         label: c.label,

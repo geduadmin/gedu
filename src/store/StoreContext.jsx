@@ -24,6 +24,8 @@ const STAGE_FLAG_SYNC = {
   blocked: { blocked: true },
 };
 
+const MEETING_OR_LATER = ['meeting', 'meeting_candidate', 'meeting_not_candidate', 'registered'];
+
 function activity(leadId, userId, type, meta = {}, at = nowIso()) {
   return { id: uid(), leadId, userId, type, at, meta };
 }
@@ -480,11 +482,26 @@ export function StoreProvider({ children }) {
 
       /* meetings */
       addMeeting(data) {
-        update((s) => ({
-          ...s,
-          meetings: [...s.meetings, { status: 'scheduled', notes: '', title: 'Meeting', ...data, id: uid(), createdAt: nowIso() }],
-          activities: [...s.activities, activity(data.leadId, me(), 'meeting', { text: `Meeting scheduled: ${data.title || 'Meeting'}` })],
-        }));
+        update((s) => {
+          const acts = [activity(data.leadId, me(), 'meeting', { text: `Meeting scheduled: ${data.title || 'Meeting'}` })];
+          // A new meeting moves the lead to the "meeting scheduled" status, unless it is already
+          // there or further on (meeting done, registered).
+          const target = [...s.stages].sort((a, b) => a.order - b.order).find((x) => x.kind === 'meeting');
+          const leads = s.leads.map((l) => {
+            if (l.id !== data.leadId || !target) return l;
+            const cur = s.stages.find((x) => x.id === l.stageId);
+            if (MEETING_OR_LATER.includes(cur?.kind)) return l;
+            const sc = stageChange(s, l, target.id, me());
+            acts.push(...sc.acts);
+            return { ...sc.lead, updatedAt: nowIso() };
+          });
+          return {
+            ...s,
+            leads,
+            meetings: [...s.meetings, { status: 'scheduled', notes: '', title: 'Meeting', ...data, id: uid(), createdAt: nowIso() }],
+            activities: [...s.activities, ...acts],
+          };
+        });
       },
       updateMeeting(id, patch) {
         update((s) => ({ ...s, meetings: s.meetings.map((m) => (m.id === id ? { ...m, ...patch } : m)) }));
