@@ -7,7 +7,7 @@ import { greeting, MonthPicker, StageBadge } from '../components/ui';
 import { monthKey as currentMonth, monthLabel, timeAgo } from '../lib/utils';
 import { t } from '../i18n';
 
-const CLOSED_KINDS = ['registered', 'not_interested', 'blocked'];
+const CLOSED_KINDS = ['registered', 'not_interested', 'meeting_not_candidate', 'blocked'];
 
 export default function MyDashboard() {
   const { state, user } = useStore();

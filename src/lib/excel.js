@@ -130,6 +130,8 @@ export function exportMonthReport(state, key, lookups) {
     Interested: r.interested,
     'Very interested': r.very_interested,
     'Not interested': r.not_interested,
+    'Meeting done – candidate': r.meeting_candidate,
+    'Meeting done – not a candidate': r.meeting_not_candidate,
     Registered: r.registered,
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(board), 'Employees');
@@ -263,6 +265,8 @@ const monthRow = (m) => ({
   Interested: m.interested,
   'Very interested': m.very_interested,
   'Not interested': m.not_interested,
+  'Meeting done – candidate': m.meeting_candidate,
+  'Meeting done – not a candidate': m.meeting_not_candidate,
   Registered: m.registered,
   'Blocked us': m.blocked,
   Calls: m.calls,

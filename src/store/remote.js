@@ -28,6 +28,7 @@ export function emptyRemoteState(users = []) {
     demoSeeded: true,
     teamV1: true,
     onlyTeamV2: true,
+    meetingStagesV1: true,
     users,
     stages: [],
     customColumns: [],

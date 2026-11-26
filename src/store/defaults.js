@@ -11,6 +11,8 @@ export const STAGE_KINDS = [
   { value: 'interested', label: 'Interested' },
   { value: 'very_interested', label: 'Very interested' },
   { value: 'meeting', label: 'Meeting' },
+  { value: 'meeting_candidate', label: 'Meeting done – candidate' },
+  { value: 'meeting_not_candidate', label: 'Meeting done – not a candidate' },
   { value: 'registered', label: 'Registered' },
   { value: 'not_interested', label: 'Not interested' },
   { value: 'blocked', label: 'Blocked us' },
@@ -25,6 +27,8 @@ export const DEFAULT_STAGES = [
   ['Interested', 'interested', '#2563eb'],
   ['Very Interested', 'very_interested', '#1d4ed8'],
   ['Meeting Scheduled', 'meeting', '#c026d3'],
+  ['Meeting Done – Candidate', 'meeting_candidate', '#0f766e'],
+  ['Meeting Done – Not a Candidate', 'meeting_not_candidate', '#78716c'],
   ['Registered', 'registered', '#15803d'],
   ['Not Interested', 'not_interested', '#b45309'],
   ['Blocked Us', 'blocked', '#b91c1c'],
@@ -81,6 +85,21 @@ export const TEAM_EMPLOYEES = [
 ];
 const TEAM_FLAG = 'teamV1';
 
+/* One-time: add the two "meeting done" statuses to data saved before they existed,
+   right after the meeting status. If an admin deletes them later, they stay deleted. */
+const MEETING_STAGES_FLAG = 'meetingStagesV1';
+const MEETING_OUTCOME_KINDS = ['meeting_candidate', 'meeting_not_candidate'];
+function addMeetingOutcomeStages(stages) {
+  const have = new Set(stages.map((s) => s.kind));
+  const add = DEFAULT_STAGES.filter(([, kind]) => MEETING_OUTCOME_KINDS.includes(kind) && !have.has(kind))
+    .map(([name, kind, color]) => ({ id: uid(), name, kind, color }));
+  if (!add.length) return stages;
+  const list = [...stages].sort((a, b) => a.order - b.order);
+  const at = list.findIndex((s) => s.kind === 'meeting');
+  list.splice(at < 0 ? list.length : at + 1, 0, ...add);
+  return list.map((s, i) => ({ ...s, order: i }));
+}
+
 const makeEmployee = ({ name, email }) => ({
   id: uid(),
   name,
@@ -115,6 +134,7 @@ export function createInitialState() {
     ],
     [TEAM_FLAG]: true,
     [ONLY_TEAM_FLAG]: true,
+    [MEETING_STAGES_FLAG]: true,
     stages: DEFAULT_STAGES.map(([name, kind, color], i) => ({ id: uid(), name, kind, color, order: i })),
     customColumns: [],
     columnOrders: {},
@@ -176,8 +196,9 @@ function migrateBase(s) {
     ...s,
     version: SCHEMA_VERSION,
     [TEAM_FLAG]: true,
+    [MEETING_STAGES_FLAG]: true,
     users: s[TEAM_FLAG] ? users : ensureTeam(users),
-    stages: s.stages?.length ? s.stages : base.stages,
+    stages: !s.stages?.length ? base.stages : s[MEETING_STAGES_FLAG] ? s.stages : addMeetingOutcomeStages(s.stages),
     certificateStages: s.certificateStages ?? base.certificateStages,
     customColumns: s.customColumns ?? [],
     columnOrders: s.columnOrders ?? {},

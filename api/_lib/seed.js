@@ -7,6 +7,8 @@ export const DEFAULT_STAGES = [
   ['Interested', 'interested', '#2563eb'],
   ['Very Interested', 'very_interested', '#1d4ed8'],
   ['Meeting Scheduled', 'meeting', '#c026d3'],
+  ['Meeting Done – Candidate', 'meeting_candidate', '#0f766e'],
+  ['Meeting Done – Not a Candidate', 'meeting_not_candidate', '#78716c'],
   ['Registered', 'registered', '#15803d'],
   ['Not Interested', 'not_interested', '#b45309'],
   ['Blocked Us', 'blocked', '#b91c1c'],

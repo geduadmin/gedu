@@ -1,6 +1,10 @@
 // Arabic translations, keyed by the English text used in the code.
 // To change a word, edit the Arabic text on the right. Missing entries fall back to English.
 const AR = {
+  "Meeting Done – Candidate": "تم الاجتماع – العميل مرشح",
+  "Meeting Done – Not a Candidate": "تم الاجتماع – العميل غير مرشح",
+  "Meeting done – candidate": "تم الاجتماع – مرشح",
+  "Meeting done – not a candidate": "تم الاجتماع – غير مرشح",
   "Loading…": "جارٍ التحميل…",
   "{n}% of previous step": "{n}% من الخطوة السابقة",
   "New leads": "عملاء جدد",

@@ -27,7 +27,7 @@ Optional: a local, git-ignored `src/store/demo.local.js` generates sample data f
 
 ## How the numbers are counted
 
-- **Outcomes** (interested, very interested, not interested, registered, blocked): leads *moved into* a status of that kind during the month. Each status's "Counts as" setting is in **Settings**.
+- **Outcomes** (interested, very interested, not interested, meeting done – candidate, meeting done – not a candidate, registered, blocked): leads *moved into* a status of that kind during the month. Each status's "Counts as" setting is in **Settings**.
 - **Calls, messages, follow-ups:** activities logged in the month.
 - **Meetings:** meetings dated in the month.
 

@@ -4,7 +4,7 @@ import { daysInMonth, inRange, monthLabel, monthRange, shiftMonth } from './util
 /*
   How the numbers are counted for a month:
   - New leads:            leads created in the month (by lead owner)
-  - Interested / Very interested / Not interested / Registered / Blocked:
+  - Interested / Very interested / Not interested / Meeting done (candidate or not) / Registered / Blocked:
                           distinct leads that were MOVED INTO a stage of that kind
                           during the month (by lead owner)
   - Calls / Messages / Follow-ups: activities logged in the month (by who logged them)
@@ -15,6 +15,8 @@ export const OUTCOMES = [
   { key: 'interested', label: 'Interested' },
   { key: 'very_interested', label: 'Very interested' },
   { key: 'not_interested', label: 'Not interested' },
+  { key: 'meeting_candidate', label: 'Meeting done – candidate' },
+  { key: 'meeting_not_candidate', label: 'Meeting done – not a candidate' },
   { key: 'registered', label: 'Registered' },
   { key: 'blocked', label: 'Blocked us' },
 ];
@@ -29,6 +31,8 @@ export function computeMonth(state, key, { userId } = {}) {
     interested: 0,
     very_interested: 0,
     not_interested: 0,
+    meeting_candidate: 0,
+    meeting_not_candidate: 0,
     registered: 0,
     blocked: 0,
     calls: 0,

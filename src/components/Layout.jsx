@@ -8,7 +8,7 @@ import { fmtDateTime } from '../lib/utils';
 import { Avatar } from './ui';
 import { LangToggle, t, tn } from '../i18n';
 
-const CLOSED_KINDS = ['registered', 'not_interested', 'blocked'];
+const CLOSED_KINDS = ['registered', 'not_interested', 'meeting_not_candidate', 'blocked'];
 
 function useOutsideClose(open, setOpen) {
   const ref = useRef(null);

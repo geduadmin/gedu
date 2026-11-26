@@ -56,6 +56,30 @@ export function ensureSchema() {
   return ready;
 }
 
+/* One-time: add the two "meeting done" statuses to a database created before they existed,
+   right after the meeting status. A setting doc marks it done, so statuses an admin deletes
+   are not re-created. Fixed ids keep two cold starts at once from adding them twice. */
+const MEETING_OUTCOME_KINDS = ['meeting_candidate', 'meeting_not_candidate'];
+async function addMeetingOutcomeStages(q) {
+  const [done] = await q`SELECT 1 AS x FROM docs WHERE kind = 'setting' AND id = 'meetingStagesV1'`;
+  if (done) return;
+  const stages = (await q`SELECT data FROM docs WHERE kind = 'stage' AND NOT deleted`).map((r) => r.data).sort((a, b) => a.order - b.order);
+  const have = new Set(stages.map((s) => s.kind));
+  const add = DEFAULT_STAGES.filter(([, kind]) => MEETING_OUTCOME_KINDS.includes(kind) && !have.has(kind))
+    .map(([name, kind, color]) => ({ id: `stage-${kind}`, name, kind, color, isNew: true }));
+  const list = [...stages];
+  const at = list.findIndex((s) => s.kind === 'meeting');
+  list.splice(at < 0 ? list.length : at + 1, 0, ...add);
+  const writes = [];
+  list.forEach(({ isNew, ...s }, order) => {
+    if (isNew) writes.push(q`INSERT INTO docs (kind, id, data) VALUES ('stage', ${s.id}, ${JSON.stringify({ ...s, order })}::jsonb) ON CONFLICT DO NOTHING`);
+    else if (s.order !== order && add.length)
+      writes.push(q`UPDATE docs SET data = jsonb_set(data, '{order}', to_jsonb(${order}::int)), updated_at = clock_timestamp() WHERE kind = 'stage' AND id = ${s.id}`);
+  });
+  writes.push(q`INSERT INTO docs (kind, id, data) VALUES ('setting', 'meetingStagesV1', ${JSON.stringify({ value: true })}::jsonb) ON CONFLICT DO NOTHING`);
+  await q.transaction(writes);
+}
+
 /** First run: default statuses/settings, and the first admin from ADMIN_EMAIL / ADMIN_PASSWORD. */
 async function bootstrap(q) {
   const [{ n: stageCount }] = await q`SELECT count(*)::int AS n FROM docs WHERE kind = 'stage'`;
@@ -68,6 +92,7 @@ async function bootstrap(q) {
       }),
     );
   }
+  await addMeetingOutcomeStages(q);
   await q`INSERT INTO docs (kind, id, data) VALUES ('setting', 'customColumns', ${JSON.stringify({ value: [] })}::jsonb) ON CONFLICT DO NOTHING`;
   await q`INSERT INTO docs (kind, id, data) VALUES ('setting', 'certificateStages', ${JSON.stringify({ value: DEFAULT_CERTIFICATES })}::jsonb) ON CONFLICT DO NOTHING`;
 
