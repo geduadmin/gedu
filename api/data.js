@@ -36,7 +36,8 @@ export const GET = handle(async (request) => {
         SELECT kind, id, data, deleted, updated_at::text AS ts FROM docs
         WHERE (updated_at, kind, id) > (${since}::timestamptz - make_interval(secs => ${overlap}), ${kind}, ${id})
           AND (
-            kind IN ('stage', 'setting')
+            kind = 'stage'
+            OR (kind = 'setting' AND (id NOT LIKE 'columnOrder:%' OR id = ${'columnOrder:' + me.id}))
             OR (kind = 'lead' AND owner_id = ${me.id})
             OR (kind IN ('activity', 'meeting') AND lead_id IN (SELECT id FROM mine))
           )

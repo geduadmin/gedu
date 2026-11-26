@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, Check, ChevronDown, Clock, Download, FileSpreadsheet, GripVertical, ListOrdered, Mail, Phone, Plus, Search, Trash2, X } from 'lucide-react';
 import { STAGE_KINDS } from '../store/defaults';
-import { useLookups, useStore, useVisibleLeads } from '../store/StoreContext';
+import { personalStages, useLookups, useStore, useVisibleLeads } from '../store/StoreContext';
 import LeadModal from '../components/LeadModal';
 import { Avatar, FlagIcons } from '../components/ui';
 import { timeAgo } from '../lib/utils';
@@ -17,9 +17,13 @@ export default function Pipeline() {
     return c;
   }, [state.leads]);
   const lookups = useLookups();
-  const { stages, userById, agents } = lookups;
+  const { userById, agents } = lookups;
   const leads = useVisibleLeads();
   const isAdmin = user.role === 'admin';
+  // Admin arranges the columns for everyone; an employee can rearrange her own board on top of that.
+  const myOrder = isAdmin ? null : state.columnOrders?.[user.id];
+  const stages = useMemo(() => (isAdmin ? lookups.stages : personalStages(lookups.stages, myOrder)), [isAdmin, lookups.stages, myOrder]);
+  const moveColumn = isAdmin ? actions.reorderStage : actions.reorderMyColumn;
   const [q, setQ] = useState('');
   const navigate = useNavigate();
   const { ownerId } = useParams();
@@ -64,7 +68,7 @@ export default function Pipeline() {
           </h1>
           <p>
             {filtered.length} leads · drag a lead card to another column to change its status
-            {isAdmin && ' · drag a column header to move the column'}.
+            {' · drag a column header to move the column'}.
           </p>
         </div>
         <div className="spacer" />
@@ -83,7 +87,12 @@ export default function Pipeline() {
             <option value={user.id}>{user.name} (me)</option>
           </select>
         )}
-        {isAdmin && <ColumnOrderMenu stages={stages} onMove={actions.reorderStage} />}
+        <ColumnOrderMenu
+          stages={stages}
+          onMove={moveColumn}
+          note={isAdmin ? 'This is the default order for everyone.' : 'Only changes your own board.'}
+          onReset={!isAdmin && myOrder?.length ? actions.resetMyColumnOrder : null}
+        />
         <button
           className="btn"
           title={ownerName ? `Import an Excel sheet of leads into ${ownerName}'s pipeline` : 'Import an Excel sheet of leads'}
@@ -135,16 +144,16 @@ export default function Pipeline() {
               onDrop={(e) => {
                 e.preventDefault();
                 if (dragStageId) {
-                  actions.reorderStage(dragStageId, idx);
+                  moveColumn(dragStageId, idx);
                   setDragStageId(null);
                   setOverStage(null);
                 } else drop(s.id);
               }}
             >
               <div
-                className={`column-head ${isAdmin ? 'movable' : ''}`}
-                draggable={isAdmin}
-                title={isAdmin ? 'Drag to move this column' : undefined}
+                className="column-head movable"
+                draggable
+                title="Drag to move this column"
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', 'stage:' + s.id);
                   e.dataTransfer.effectAllowed = 'move';
@@ -155,7 +164,7 @@ export default function Pipeline() {
                   setOverStage(null);
                 }}
               >
-                {isAdmin && <GripVertical size={14} className="grip" />}
+                <GripVertical size={14} className="grip" />
                 <span className="stripe" style={{ background: s.color }} />
                 {s.name}
                 <span className="count num">{items.length}</span>
@@ -229,7 +238,7 @@ export default function Pipeline() {
 }
 
 /** Dropdown listing every status column; drag or use arrows to reorder. Changes apply to the board live. */
-function ColumnOrderMenu({ stages, onMove }) {
+function ColumnOrderMenu({ stages, onMove, note, onReset }) {
   const [open, setOpen] = useState(false);
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null);
@@ -262,7 +271,7 @@ function ColumnOrderMenu({ stages, onMove }) {
         <div className="dropdown order-menu" onDragOver={(e) => e.stopPropagation()}>
           <div className="dd-head">
             Column order
-            <div className="small muted" style={{ fontWeight: 400 }}>Drag a name or use the arrows. The board updates instantly.</div>
+            <div className="small muted" style={{ fontWeight: 400 }}>Drag a name or use the arrows. The board updates instantly. {note}</div>
           </div>
           {stages.map((s, i) => {
             const target = drag && over === s.id && drag !== s.id;
@@ -303,6 +312,11 @@ function ColumnOrderMenu({ stages, onMove }) {
               </div>
             );
           })}
+          {onReset && (
+            <button className="btn ghost sm" style={{ margin: '6px 8px 4px', justifyContent: 'center' }} onClick={onReset}>
+              Reset to the default order
+            </button>
+          )}
         </div>
       )}
     </div>

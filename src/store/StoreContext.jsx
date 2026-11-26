@@ -518,6 +518,20 @@ export function StoreProvider({ children }) {
           return { ...s, stages: list.map((x, k) => ({ ...x, order: k })) };
         });
       },
+      /** Personal column order for the signed-in user (employees). Doesn't change anyone else's board. */
+      reorderMyColumn(id, toIndex) {
+        update((s) => {
+          const list = personalStages(s.stages, s.columnOrders?.[me()]).map((x) => x.id);
+          const from = list.indexOf(id);
+          if (from < 0 || from === toIndex) return s;
+          list.splice(from, 1);
+          list.splice(Math.max(0, Math.min(toIndex, list.length)), 0, id);
+          return { ...s, columnOrders: { ...s.columnOrders, [me()]: list } };
+        });
+      },
+      resetMyColumnOrder() {
+        update((s) => (s.columnOrders?.[me()]?.length ? { ...s, columnOrders: { ...s.columnOrders, [me()]: [] } } : s));
+      },
       moveStage(id, dir) {
         update((s) => {
           const list = [...s.stages].sort((a, b) => a.order - b.order);
@@ -580,6 +594,17 @@ export function StoreProvider({ children }) {
 }
 
 export const useStore = () => useContext(StoreCtx);
+
+/** Statuses in the admin's order, rearranged by a personal order (ids) when given. New statuses keep their place at the end. */
+export function personalStages(stages, order) {
+  const base = [...stages].sort((a, b) => a.order - b.order);
+  if (!order?.length) return base;
+  const rank = new Map(order.map((id, i) => [id, i]));
+  return base
+    .map((s, i) => ({ s, k: rank.has(s.id) ? rank.get(s.id) : order.length + i }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.s);
+}
 
 /* convenience selectors */
 export function useLookups() {

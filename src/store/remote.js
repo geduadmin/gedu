@@ -18,6 +18,7 @@ const COLLECTIONS = [
 ];
 const KIND_TO_COLLECTION = Object.fromEntries(COLLECTIONS.map(([c, k]) => [k, c]));
 const SETTINGS = ['customColumns', 'certificateStages'];
+export const ORDER_PREFIX = 'columnOrder:';
 
 export function emptyRemoteState(users = []) {
   return {
@@ -30,6 +31,7 @@ export function emptyRemoteState(users = []) {
     users,
     stages: [],
     customColumns: [],
+    columnOrders: {},
     certificateStages: [],
     leads: [],
     activities: [],
@@ -43,6 +45,11 @@ export function diffState(prev, next) {
   const dels = [];
   for (const key of SETTINGS) {
     if (prev[key] !== next[key]) settings.push({ kind: 'setting', op: 'put', id: key, data: { value: next[key] } });
+  }
+  // each person's own column order is a separate setting: columnOrder:<userId>
+  if (prev.columnOrders !== next.columnOrders) {
+    for (const [uid, order] of Object.entries(next.columnOrders ?? {}))
+      if (prev.columnOrders?.[uid] !== order) settings.push({ kind: 'setting', op: 'put', id: ORDER_PREFIX + uid, data: { value: order } });
   }
   for (const [coll, kind] of COLLECTIONS) {
     if (prev[coll] === next[coll]) continue;
@@ -65,6 +72,10 @@ export function applyDocs(state, docs, leadIds) {
   for (const d of docs) {
     if (d.kind === 'setting') {
       if (!d.deleted && d.data && SETTINGS.includes(d.id)) next[d.id] = d.data.value;
+      else if (d.id.startsWith(ORDER_PREFIX)) {
+        const { [d.id.slice(ORDER_PREFIX.length)]: _old, ...rest } = next.columnOrders ?? {};
+        next.columnOrders = d.deleted || !Array.isArray(d.data?.value) ? rest : { ...rest, [d.id.slice(ORDER_PREFIX.length)]: d.data.value };
+      }
       continue;
     }
     const coll = KIND_TO_COLLECTION[d.kind];

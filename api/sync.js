@@ -5,12 +5,13 @@ import { handle, HttpError, json, readJson } from './_lib/http.js';
 
 const KINDS = new Set(['stage', 'setting', 'lead', 'activity', 'meeting']);
 const MAX_OPS = 500;
+const ORDER_PREFIX = 'columnOrder:'; // personal column order setting: columnOrder:<userId>
 const MAX_DOC_BYTES = 300_000;
 
 /*
   POST /api/sync { ops: [{ kind, op: 'put' | 'del', id, data? }] }
   Applies the changes in one transaction. Rules for call-center employees (admins can do anything):
-  - statuses and settings: admin only
+  - statuses and settings: admin only, except their own column order (setting columnOrder:<their id>)
   - leads: only their own, and they can't hand a lead to someone else
   - activity & meetings: only on their own leads; meetings must be assigned to themselves
 */
@@ -31,6 +32,10 @@ export const POST = handle(async (request) => {
       if (!o.data || typeof o.data !== 'object' || Array.isArray(o.data)) throw new HttpError(400, 'Invalid change data');
       if (o.kind !== 'setting' && o.data.id !== o.id) throw new HttpError(400, 'Change id mismatch');
       if (JSON.stringify(o.data).length > MAX_DOC_BYTES) throw new HttpError(413, 'A record is too large');
+      if (o.kind === 'setting' && o.id.startsWith(ORDER_PREFIX)) {
+        const v = o.data.value;
+        if (!Array.isArray(v) || v.length > 200 || v.some((x) => typeof x !== 'string' || x.length > 100)) throw new HttpError(400, 'Invalid column order');
+      }
     }
   }
 
@@ -41,11 +46,14 @@ export const POST = handle(async (request) => {
   const existing = new Map(existingRows.map((r) => [`${r.kind}:${r.id}`, r]));
 
   if (!isAdmin) {
-    if (ops.some((o) => o.kind === 'stage' || o.kind === 'setting')) throw new HttpError(403, 'Only an admin can change statuses and settings.');
+    // employees may only save their own column order
+    if (ops.some((o) => o.kind === 'stage' || (o.kind === 'setting' && !(o.op === 'put' && o.id === ORDER_PREFIX + me.id))))
+      throw new HttpError(403, 'Only an admin can change statuses and settings.');
 
     // Who owns each referenced lead after this batch?
     const leadIds = new Set();
     for (const o of ops) {
+      if (o.kind === 'setting') continue;
       if (o.kind === 'lead') leadIds.add(o.id);
       else if (o.op === 'put') leadIds.add(o.data.leadId);
       else if (existing.get(`${o.kind}:${o.id}`)?.lead_id) leadIds.add(existing.get(`${o.kind}:${o.id}`).lead_id);
@@ -59,6 +67,7 @@ export const POST = handle(async (request) => {
     };
 
     for (const o of ops) {
+      if (o.kind === 'setting') continue; // own column order, checked above
       const ex = existing.get(`${o.kind}:${o.id}`);
       if (o.kind === 'lead') {
         if (ex && !ex.deleted && ex.owner_id !== me.id) deny();
