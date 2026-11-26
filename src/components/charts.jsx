@@ -7,16 +7,17 @@ export const BRAND = '#5b4fe9';
 const GRID = '#eef0f4';
 const AXIS = '#e3e6ec';
 const TICK = { fill: '#98a2b3', fontSize: 11 };
+import { t } from '../i18n';
 
 function TooltipBox({ active, payload, label, labelFormatter }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="chart-tooltip">
-      <div className="t">{labelFormatter ? labelFormatter(label) : label}</div>
+      <div className="t">{labelFormatter ? labelFormatter(label) : t(label)}</div>
       {payload.map((p) => (
         <div className="r" key={p.dataKey}>
           <span className="dot" style={{ background: p.color || p.fill }} />
-          {p.name}
+          {t(p.name)}
           <b className="num">{p.value}</b>
         </div>
       ))}
@@ -30,7 +31,7 @@ export function Legend({ series }) {
       {series.map((s, i) => (
         <span key={s.key}>
           <i style={{ background: s.color ?? SERIES[i] }} />
-          {s.label}
+          {t(s.label)}
         </span>
       ))}
     </div>
@@ -107,7 +108,7 @@ export function HBarChart({ data, color = BRAND, name = 'Leads', height }) {
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 0 }} barCategoryGap={7}>
         <CartesianGrid horizontal={false} stroke={GRID} strokeDasharray="4 4" />
         <XAxis type="number" allowDecimals={false} tick={TICK} tickLine={false} axisLine={false} />
-        <YAxis type="category" dataKey="name" width={130} tick={{ ...TICK, fill: '#667085' }} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="name" width={130} tickFormatter={(v) => t(v)} tick={{ ...TICK, fill: '#667085' }} tickLine={false} axisLine={false} />
         <Tooltip content={<TooltipBox />} cursor={{ fill: 'rgba(91,79,233,0.05)' }} />
         <Bar dataKey="value" name={name} fill={color} radius={[0, 6, 6, 0]} maxBarSize={16} isAnimationActive={false}>
           <LabelList dataKey="value" position="right" style={{ fill: '#667085', fontSize: 11, fontWeight: 600 }} />
@@ -129,15 +130,15 @@ export function Funnel({ steps }) {
         const prev = i > 0 ? steps[i - 1].value : null;
         const conv = prev ? Math.round((s.value / prev) * 100) : null;
         return (
-          <div className="funnel-row" key={s.label} title={`${s.label}: ${s.value}`}>
+          <div className="funnel-row" key={s.label} title={`${t(s.label)}: ${s.value}`}>
             <div className="funnel-bar-wrap">
               <div className="funnel-bar num" style={{ width: `${widths[i] ?? 40}%`, background: FUNNEL_RAMP[i % FUNNEL_RAMP.length] }}>
                 {s.value.toLocaleString()}
               </div>
             </div>
             <div className="funnel-meta">
-              <b>{s.label}</b>
-              <span>{conv === null ? s.hint : `${conv}% of previous step`}</span>
+              <b>{t(s.label)}</b>
+              <span>{conv === null ? t(s.hint) : t('{n}% of previous step', { n: conv })}</span>
             </div>
           </div>
         );

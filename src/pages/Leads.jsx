@@ -7,6 +7,7 @@ import LeadModal from '../components/LeadModal';
 import { Empty, FlagIcons, StageBadge } from '../components/ui';
 import { exportLeads } from '../lib/excel';
 import { fmtDate, timeAgo } from '../lib/utils';
+import { t } from '../i18n';
 
 const PAGE = 50;
 const COLS_KEY = 'lf_hidden_cols';
@@ -37,26 +38,26 @@ export default function Leads() {
 
   const columns = useMemo(
     () => [
-      { key: 'name', label: 'Name', get: (l) => l.name, render: (l) => <b>{l.name}</b> },
-      { key: 'phone', label: 'Phone', get: (l) => l.phone },
-      { key: 'email', label: 'Email', get: (l) => l.email },
-      { key: 'stage', label: 'Status', get: (l) => stageById[l.stageId]?.order ?? 99, render: (l) => <StageBadge stage={stageById[l.stageId]} /> },
-      ...(isAdmin ? [{ key: 'owner', label: 'Employee', get: (l) => userById[l.ownerId]?.name ?? '' }] : []),
-      { key: 'city', label: 'City', get: (l) => l.city },
-      { key: 'country', label: 'Country', get: (l) => l.country },
-      { key: 'nationality', label: 'Nationality', get: (l) => l.nationality },
-      { key: 'gender', label: 'Gender', get: (l) => l.gender },
-      { key: 'certificateStage', label: 'Certificate', get: (l) => l.certificateStage },
-      { key: 'flags', label: 'Contact', get: (l) => Object.values(l.flags).filter(Boolean).length, render: (l) => <FlagIcons flags={l.flags} /> },
-      { key: 'createdAt', label: 'Created', get: (l) => l.createdAt, render: (l) => fmtDate(l.createdAt) },
-      { key: 'lastContactAt', label: 'Last contact', get: (l) => l.lastContactAt ?? '', render: (l) => <span title={fmtDate(l.lastContactAt)}>{timeAgo(l.lastContactAt)}</span> },
+      { key: 'name', label: t('Name'), get: (l) => l.name, render: (l) => <b>{l.name}</b> },
+      { key: 'phone', label: t('Phone'), get: (l) => l.phone, render: (l) => <bdi dir="ltr">{l.phone}</bdi> },
+      { key: 'email', label: t('Email'), get: (l) => l.email, render: (l) => <bdi dir="ltr">{l.email}</bdi> },
+      { key: 'stage', label: t('Status'), get: (l) => stageById[l.stageId]?.order ?? 99, render: (l) => <StageBadge stage={stageById[l.stageId]} /> },
+      ...(isAdmin ? [{ key: 'owner', label: t('Employee'), get: (l) => userById[l.ownerId]?.name ?? '' }] : []),
+      { key: 'city', label: t('City'), get: (l) => l.city },
+      { key: 'country', label: t('Country'), get: (l) => l.country },
+      { key: 'nationality', label: t('Nationality'), get: (l) => l.nationality },
+      { key: 'gender', label: t('Gender'), get: (l) => l.gender, render: (l) => t(l.gender) },
+      { key: 'certificateStage', label: t('Certificate'), get: (l) => l.certificateStage, render: (l) => t(l.certificateStage) },
+      { key: 'flags', label: t('Contact'), get: (l) => Object.values(l.flags).filter(Boolean).length, render: (l) => <FlagIcons flags={l.flags} /> },
+      { key: 'createdAt', label: t('Created'), get: (l) => l.createdAt, render: (l) => fmtDate(l.createdAt) },
+      { key: 'lastContactAt', label: t('Last contact'), get: (l) => l.lastContactAt ?? '', render: (l) => <span title={fmtDate(l.lastContactAt)}>{timeAgo(l.lastContactAt)}</span> },
       ...state.customColumns.map((c) => ({
         key: 'c_' + c.id,
         label: c.label,
         get: (l) => l.custom?.[c.id] ?? '',
-        render: (l) => (c.type === 'checkbox' ? (l.custom?.[c.id] ? 'Yes' : 'No') : String(l.custom?.[c.id] ?? '')),
+        render: (l) => (c.type === 'checkbox' ? (l.custom?.[c.id] ? t('Yes') : t('No')) : String(l.custom?.[c.id] ?? '')),
       })),
-      { key: 'files', label: 'Files', get: (l) => l.files.length },
+      { key: 'files', label: t('Files'), get: (l) => l.files.length },
     ],
     [state.customColumns, stageById, userById, isAdmin],
   );
@@ -110,27 +111,27 @@ export default function Leads() {
     <>
       <div className="page-head">
         <div>
-          <h1>{isAdmin ? 'All leads' : 'My leads'}</h1>
+          <h1>{t(isAdmin ? 'All leads' : 'My leads')}</h1>
           <p>
-            {filtered.length} of {leads.length} leads
+            {t('{n} of {total} leads', { n: filtered.length, total: leads.length })}
           </p>
         </div>
         <div className="spacer" />
         <button className="btn" onClick={() => exportLeads(filtered, { ...lookups, customColumns: state.customColumns }, 'leads.xlsx')}>
-          <Download size={15} /> Export Excel
+          <Download size={15} /> {t('Export Excel')}
         </button>
         <button className="btn primary" onClick={() => setOpen({ new: true })}>
-          <Plus size={15} /> Add lead
+          <Plus size={15} /> {t('Add lead')}
         </button>
       </div>
 
       <div className="row wrap" style={{ marginBottom: 12 }}>
         <div className="search">
           <Search size={15} />
-          <input className="input" placeholder="Search…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
+          <input className="input" placeholder={t('Search…')} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
         </div>
         <select className="select" style={{ width: 170 }} value={stage} onChange={(e) => { setStage(e.target.value); setPage(0); }}>
-          <option value="all">All statuses</option>
+          <option value="all">{t('All statuses')}</option>
           {stages.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -139,7 +140,7 @@ export default function Leads() {
         </select>
         {isAdmin && (
           <select className="select" style={{ width: 170 }} value={owner} onChange={(e) => { setOwner(e.target.value); setPage(0); }}>
-            <option value="all">All employees</option>
+            <option value="all">{t('All employees')}</option>
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -148,24 +149,24 @@ export default function Leads() {
           </select>
         )}
         <select className="select" style={{ width: 210 }} value={flag} onChange={(e) => { setFlag(e.target.value); setPage(0); }}>
-          <option value="any">Any contact status</option>
+          <option value="any">{t('Any contact status')}</option>
           {FLAGS.map((f) => (
             <option key={f.key} value={f.key}>
-              {f.label}
+              {t(f.label)}
             </option>
           ))}
           {FLAGS.map((f) => (
             <option key={'n' + f.key} value={'not:' + f.key}>
-              NOT {f.label.toLowerCase()}
+              {t('NOT {what}', { what: t(f.label).toLowerCase() })}
             </option>
           ))}
         </select>
         <div style={{ position: 'relative' }}>
           <button className="btn" onClick={() => setShowCols((v) => !v)}>
-            <Columns3 size={15} /> Columns
+            <Columns3 size={15} /> {t('Columns')}
           </button>
           {showCols && (
-            <div className="card card-pad stack" style={{ position: 'absolute', zIndex: 5, top: 40, left: 0, width: 220, gap: 6, boxShadow: 'var(--shadow-lg)' }}>
+            <div className="card card-pad stack" style={{ position: 'absolute', zIndex: 5, top: 40, insetInlineStart: 0, width: 220, gap: 6, boxShadow: 'var(--shadow-lg)' }}>
               {columns.map((c) => (
                 <label className="check" key={c.key}>
                   <input type="checkbox" checked={!hidden.has(c.key)} disabled={c.key === 'name'} onChange={() => toggleCol(c.key)} />
@@ -179,18 +180,18 @@ export default function Leads() {
 
       {sel.size > 0 && (
         <div className="card card-pad row wrap" style={{ marginBottom: 12, background: 'var(--primary-wash)' }}>
-          <b>{sel.size} selected</b>
+          <b>{t('{n} selected', { n: sel.size })}</b>
           <select className="select" style={{ width: 190 }} value="" onChange={(e) => { actions.bulkUpdateLeads(ids, { stageId: e.target.value }); setSel(new Set()); }}>
-            <option value="">Move to status…</option>
+            <option value="">{t('Move to status…')}</option>
             {stages.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
+                {t(s.name)}
               </option>
             ))}
           </select>
           {isAdmin && (
             <select className="select" style={{ width: 190 }} value="" onChange={(e) => { actions.bulkUpdateLeads(ids, { ownerId: e.target.value }); setSel(new Set()); }}>
-              <option value="">Assign to employee…</option>
+              <option value="">{t('Assign to employee…')}</option>
               {state.users.filter((u) => u.active).map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -199,30 +200,30 @@ export default function Leads() {
             </select>
           )}
           <button className="btn" onClick={() => exportLeads(leads.filter((l) => sel.has(l.id)), { ...lookups, customColumns: state.customColumns }, 'selected-leads.xlsx')}>
-            <Download size={15} /> Export selected
+            <Download size={15} /> {t('Export selected')}
           </button>
           <button
             className="btn danger"
             onClick={() => {
-              if (confirm(`Delete ${sel.size} leads? This cannot be undone.`)) {
+              if (confirm(t('Delete {n} leads? This cannot be undone.', { n: sel.size }))) {
                 actions.deleteLeads(ids);
                 setSel(new Set());
               }
             }}
           >
-            <Trash2 size={15} /> Delete
+            <Trash2 size={15} /> {t('Delete')}
           </button>
           <span className="spacer" />
           <button className="btn ghost" onClick={() => setSel(new Set())}>
-            Clear
+            {t('Clear')}
           </button>
         </div>
       )}
 
       <div className="card">
         {filtered.length === 0 ? (
-          <Empty icon={Inbox} title="No leads found">
-            Add a lead or import an Excel sheet.
+          <Empty icon={Inbox} title={t('No leads found')}>
+            {t('Add a lead or import an Excel sheet.')}
           </Empty>
         ) : (
           <>
@@ -259,13 +260,13 @@ export default function Leads() {
             </div>
             <div className="pager">
               <span className="muted small">
-                Page {cur + 1} of {pages}
+                {t('Page {n} of {total}', { n: cur + 1, total: pages })}
               </span>
               <button className="btn sm" disabled={cur === 0} onClick={() => setPage(cur - 1)}>
-                Previous
+                {t('Previous')}
               </button>
               <button className="btn sm" disabled={cur >= pages - 1} onClick={() => setPage(cur + 1)}>
-                Next
+                {t('Next')}
               </button>
             </div>
           </>

@@ -6,6 +6,7 @@ import {
 import { useLookups, useStore } from '../store/StoreContext';
 import { fmtDateTime } from '../lib/utils';
 import { Avatar } from './ui';
+import { LangToggle, t, tn } from '../i18n';
 
 const CLOSED_KINDS = ['registered', 'not_interested', 'blocked'];
 
@@ -52,17 +53,17 @@ export default function Layout() {
   }, [state.meetings, isAdmin, user.id]);
 
   const menu = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    ...(isAdmin ? [] : [{ to: '/pipeline', label: 'My Pipeline', icon: KanbanSquare }]),
-    { to: '/leads', label: isAdmin ? 'All Leads' : 'My Leads', icon: Table2 },
-    { to: '/meetings', label: 'Meetings', icon: CalendarClock, count: upcoming.length || null },
+    { to: '/', label: t('Dashboard'), icon: LayoutDashboard, end: true },
+    ...(isAdmin ? [] : [{ to: '/pipeline', label: t('My Pipeline'), icon: KanbanSquare }]),
+    { to: '/leads', label: t(isAdmin ? 'All Leads' : 'My Leads'), icon: Table2 },
+    { to: '/meetings', label: t('Meetings'), icon: CalendarClock, count: upcoming.length || null },
   ];
   const manage = [
-    { to: '/import', label: 'Import Excel', icon: FileSpreadsheet },
+    { to: '/import', label: t('Import Excel'), icon: FileSpreadsheet },
     ...(isAdmin
       ? [
-          { to: '/employees', label: 'Employees', icon: Users },
-          { to: '/settings', label: 'Settings', icon: Settings },
+          { to: '/employees', label: t('Employees'), icon: Users },
+          { to: '/settings', label: t('Settings'), icon: Settings },
         ]
       : []),
   ];
@@ -75,7 +76,7 @@ export default function Layout() {
   }, [state.leads]);
   const pipelines = isAdmin
     ? [
-        { to: '/pipeline', label: 'All pipelines', icon: KanbanSquare, end: true, count: state.leads.length, quiet: true },
+        { to: '/pipeline', label: t('All pipelines'), icon: KanbanSquare, end: true, count: state.leads.length, quiet: true },
         ...agents
           .filter((a) => a.active)
           .map((a) => ({ to: `/pipeline/${a.id}`, label: a.name, avatar: a.name, count: leadCount[a.id] ?? 0, quiet: true })),
@@ -99,18 +100,18 @@ export default function Layout() {
           </div>
           <div>
             <div className="brand-name">LeadFlow</div>
-            <div className="brand-sub">Follow-up CRM</div>
+            <div className="brand-sub">{t('Follow-up CRM')}</div>
           </div>
         </div>
-        <div className="nav-label">Menu</div>
+        <div className="nav-label">{t('Menu')}</div>
         <nav className="nav">{menu.map(link)}</nav>
         {isAdmin && (
           <>
-            <div className="nav-label">Pipelines</div>
+            <div className="nav-label">{t('Pipelines')}</div>
             <nav className="nav">{pipelines.map(link)}</nav>
           </>
         )}
-        <div className="nav-label">Manage</div>
+        <div className="nav-label">{t('Manage')}</div>
         <nav className="nav">{manage.map(link)}</nav>
 
         <div className="promo">
@@ -118,11 +119,11 @@ export default function Layout() {
             <PhoneOutgoing size={20} />
           </div>
           <div className="promo-title">
-            {waiting} lead{waiting === 1 ? '' : 's'} waiting for a follow-up
+            {tn(waiting, '{n} lead waiting for a follow-up', '{n} leads waiting for a follow-up')}
           </div>
-          <div className="promo-text">Open leads with no contact in the last 3 days.</div>
+          <div className="promo-text">{t('Open leads with no contact in the last 3 days.')}</div>
           <button className="btn sm" onClick={() => navigate('/pipeline')}>
-            Start calling →
+            {t('Start calling →')}
           </button>
         </div>
       </aside>
@@ -137,32 +138,34 @@ export default function Layout() {
             }}
           >
             <Search size={16} />
-            <input className="input" placeholder="Search leads by name, phone, email…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="input" placeholder={t('Search leads by name, phone, email…')} value={q} onChange={(e) => setQ(e.target.value)} />
           </form>
           <div className="spacer" />
           {mode === 'remote' && (
-            <span className={`sync-chip ${syncStatus}`} title={syncError || 'All changes are saved to the shared database'}>
+            <span className={`sync-chip ${syncStatus}`} title={syncError || t('All changes are saved to the shared database')}>
               {syncStatus === 'saving' ? <CloudUpload size={14} /> : syncStatus === 'error' ? <AlertTriangle size={14} /> : <Check size={14} />}
-              {syncStatus === 'saving' ? 'Saving…' : syncStatus === 'error' ? 'Not saved' : 'Saved'}
+              {t(syncStatus === 'saving' ? 'Saving…' : syncStatus === 'error' ? 'Not saved' : 'Saved')}
             </span>
           )}
 
+          <LangToggle />
+
           <div ref={bellRef} style={{ position: 'relative' }}>
-            <button className="round-btn" title="Upcoming meetings" onClick={() => setBellOpen((v) => !v)}>
+            <button className="round-btn" title={t('Upcoming meetings')} onClick={() => setBellOpen((v) => !v)}>
               <Bell size={18} />
               {upcoming.length > 0 && <span className="ping num">{upcoming.length}</span>}
             </button>
             {bellOpen && (
               <div className="dropdown" style={{ width: 320 }}>
-                <div className="dd-head">Meetings in the next 7 days</div>
-                {upcoming.length === 0 && <div className="small muted" style={{ padding: '4px 10px 10px' }}>Nothing scheduled.</div>}
+                <div className="dd-head">{t('Meetings in the next 7 days')}</div>
+                {upcoming.length === 0 && <div className="small muted" style={{ padding: '4px 10px 10px' }}>{t('Nothing scheduled.')}</div>}
                 {upcoming.slice(0, 6).map((m) => (
                   <button key={m.id} className="dd-item" onClick={() => { setBellOpen(false); navigate('/meetings'); }}>
                     <div className="tl-icon" style={{ width: 30, height: 30 }}>
                       <CalendarClock size={14} />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{leadById[m.leadId]?.name ?? 'Lead'}</div>
+                      <div style={{ fontWeight: 600 }}>{leadById[m.leadId]?.name ?? t('Lead')}</div>
                       <div className="small muted">{fmtDateTime(m.scheduledAt)}</div>
                     </div>
                   </button>
@@ -176,7 +179,7 @@ export default function Layout() {
               <Avatar name={user.name} />
               <div className="who">
                 <b>{user.name}</b>
-                <span>{isAdmin ? 'Admin' : 'Call center sales'}</span>
+                <span>{t(isAdmin ? 'Admin' : 'Call center sales')}</span>
               </div>
             </button>
             {menuOpen && (
@@ -186,7 +189,7 @@ export default function Layout() {
                   <div className="small muted" style={{ fontWeight: 400 }}>{user.email}</div>
                 </div>
                 <button className="dd-item" onClick={actions.logout}>
-                  <LogOut size={15} /> Log out
+                  <LogOut size={15} /> {t('Log out')}
                 </button>
               </div>
             )}

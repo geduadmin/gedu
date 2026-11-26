@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { GraduationCap, TrendingUp, Zap } from 'lucide-react';
 import { useStore } from '../store/StoreContext';
+import { LangToggle, t } from '../i18n';
 
 export default function Login() {
   const { state, user, actions, loadError } = useStore();
@@ -36,50 +37,51 @@ export default function Login() {
           <div className="brand-name" style={{ fontSize: 20 }}>LeadFlow</div>
         </div>
         <div>
-          <h2>Follow up every lead. Never lose a student again.</h2>
-          <p>Track calls, WhatsApp messages and meetings for your whole call center team, with monthly performance at a glance.</p>
+          <h2>{t('Follow up every lead. Never lose a student again.')}</h2>
+          <p>{t('Track calls, WhatsApp messages and meetings for your whole call center team, with monthly performance at a glance.')}</p>
         </div>
         <div className="row wrap" style={{ gap: 14 }}>
           <div className="login-float">
-            <div className="row" style={{ fontWeight: 650 }}><TrendingUp size={16} /> Monthly leaderboard</div>
-            <div className="small" style={{ opacity: 0.85, marginTop: 4 }}>Calls, follow-ups and meetings per employee</div>
+            <div className="row" style={{ fontWeight: 650 }}><TrendingUp size={16} /> {t('Monthly leaderboard')}</div>
+            <div className="small" style={{ opacity: 0.85, marginTop: 4 }}>{t('Calls, follow-ups and meetings per employee')}</div>
           </div>
           <div className="login-float">
-            <div className="row" style={{ fontWeight: 650 }}><GraduationCap size={16} /> Lead to registration</div>
-            <div className="small" style={{ opacity: 0.85, marginTop: 4 }}>Drag leads through your pipeline</div>
+            <div className="row" style={{ fontWeight: 650 }}><GraduationCap size={16} /> {t('Lead to registration')}</div>
+            <div className="small" style={{ opacity: 0.85, marginTop: 4 }}>{t('Drag leads through your pipeline')}</div>
           </div>
         </div>
       </div>
 
       <div className="login-side">
+        <LangToggle className="login-lang" />
         <form className="login stack" style={{ gap: 16 }} onSubmit={submit}>
           <div>
-            <h1>Welcome back</h1>
-            <p className="ink2" style={{ margin: '6px 0 0' }}>Sign in to your account to continue.</p>
+            <h1>{t('Welcome back')}</h1>
+            <p className="ink2" style={{ margin: '6px 0 0' }}>{t('Sign in to your account to continue.')}</p>
           </div>
           <label className="field">
-            <span>Email</span>
+            <span>{t('Email')}</span>
             <input className="input" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus required />
           </label>
           <label className="field">
-            <span>Password</span>
+            <span>{t('Password')}</span>
             <input className="input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </label>
-          {(error || loadError) && <div className="error">{error || loadError}</div>}
+          {(error || loadError) && <div className="error">{t(error || loadError)}</div>}
           <button className="btn primary" style={{ justifyContent: 'center', padding: '11px' }} disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+            {t(busy ? 'Signing in…' : 'Sign in')}
           </button>
           {(admin || demoAgent) && (
             <div className="card card-pad stack" style={{ gap: 8, boxShadow: 'none', background: 'var(--surface-2)' }}>
-              <b className="small">Demo accounts (click to fill)</b>
+              <b className="small">{t('Demo accounts (click to fill)')}</b>
               {admin && (
                 <button type="button" className="btn sm ghost" style={{ justifyContent: 'space-between' }} onClick={() => fill('admin@admin.com', 'admin123')}>
-                  <span>Admin / manager</span> <span className="muted">admin@admin.com · admin123</span>
+                  <span>{t('Admin / manager')}</span> <span className="muted">admin@admin.com · admin123</span>
                 </button>
               )}
               {demoAgent && (
                 <button type="button" className="btn sm ghost" style={{ justifyContent: 'space-between' }} onClick={() => fill('rasha@leadflow.demo', '123456')}>
-                  <span>Call center employee</span> <span className="muted">rasha@leadflow.demo · 123456</span>
+                  <span>{t('Call center employee')}</span> <span className="muted">rasha@leadflow.demo · 123456</span>
                 </button>
               )}
             </div>

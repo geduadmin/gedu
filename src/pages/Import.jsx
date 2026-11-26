@@ -6,6 +6,8 @@ import { useLookups, useStore, useVisibleLeads } from '../store/StoreContext';
 import { FLAGS } from '../store/defaults';
 import { exportTemplate, LEAD_FIELDS, parseBool, parseDate, readWorkbook } from '../lib/excel';
 import { normalize, uid } from '../lib/utils';
+import { t } from '../i18n';
+import AR from '../i18n/ar';
 
 const DATE_FIELDS = ['createdAt', 'lastContactAt'];
 
@@ -71,15 +73,15 @@ export default function Import() {
       pickSheet(data, first);
     } catch (e) {
       console.error(e);
-      setError('Could not read this file. Use .xlsx, .xls or .csv.');
+      setError(t('Could not read this file. Use .xlsx, .xls or .csv.'));
     }
   };
 
   const doImport = () => {
     setError('');
     const mapped = Object.values(mapping);
-    if (!mapped.includes('name')) return setError('Map one column to "Name".');
-    if (isAdmin && !target && assignMode === 'spread' && spread.size === 0) return setError('Choose at least one employee to distribute to.');
+    if (!mapped.includes('name')) return setError(t('Map one column to "Name".'));
+    if (isAdmin && !target && assignMode === 'spread' && spread.size === 0) return setError(t('Choose at least one employee to distribute to.'));
 
     // create new custom columns for "newcol" headers
     const newCols = {};
@@ -95,7 +97,7 @@ export default function Import() {
       }
     }
 
-    const stageByName = Object.fromEntries(stages.map((s) => [normalize(s.name), s.id]));
+    const stageByName = Object.fromEntries(stages.flatMap((s) => [[normalize(s.name), s.id], ...(AR[s.name] ? [[normalize(AR[s.name]), s.id]] : [])]));
     const userByKey = {};
     state.users.forEach((u) => {
       userByKey[normalize(u.email)] = u.id;
@@ -154,25 +156,25 @@ export default function Import() {
 
   const targetOptions = (
     <>
-      <option value="">— Ignore —</option>
-      <optgroup label="Lead fields">
+      <option value="">{t('— Ignore —')}</option>
+      <optgroup label={t('Lead fields')}>
         {LEAD_FIELDS.map((f) => (
-          <option key={f.key} value={f.key}>{f.label}</option>
+          <option key={f.key} value={f.key}>{t(f.label)}</option>
         ))}
       </optgroup>
-      <optgroup label="Contact status (yes/no)">
+      <optgroup label={t('Contact status (yes/no)')}>
         {FLAGS.map((f) => (
-          <option key={f.key} value={'flag:' + f.key}>{f.label}</option>
+          <option key={f.key} value={'flag:' + f.key}>{t(f.label)}</option>
         ))}
       </optgroup>
       {state.customColumns.length > 0 && (
-        <optgroup label="Custom columns">
+        <optgroup label={t('Custom columns')}>
           {state.customColumns.map((c) => (
             <option key={c.id} value={'custom:' + c.id}>{c.label}</option>
           ))}
         </optgroup>
       )}
-      <option value="newcol">+ Keep as new custom column</option>
+      <option value="newcol">{t('+ Keep as new custom column')}</option>
     </>
   );
 
@@ -181,23 +183,23 @@ export default function Import() {
       <div className="page-head">
         <div>
           {target && (
-            <button className="btn ghost sm" style={{ marginLeft: -10, marginBottom: 6 }} onClick={() => navigate(`/pipeline/${target.id}`)}>
-              <ArrowLeft size={14} /> Back to {target.name}'s pipeline
+            <button className="btn ghost sm" style={{ marginInlineStart: -10, marginBottom: 6 }} onClick={() => navigate(`/pipeline/${target.id}`)}>
+              <ArrowLeft size={14} className="flip-rtl" /> {t("Back to {name}'s pipeline", { name: target.name })}
             </button>
           )}
           <h1 className="row" style={{ gap: 12 }}>
             {target && <Avatar name={target.name} />}
-            {target ? `Import leads into ${target.name}'s pipeline` : 'Import Excel'}
+            {target ? t("Import leads into {name}'s pipeline", { name: target.name }) : t('Import Excel')}
           </h1>
           <p>
             {target
-              ? `Every lead in the sheet goes to ${target.name}'s pipeline, and also shows in All pipelines.`
-              : 'Upload an .xlsx / .xls / .csv sheet of leads, match its columns, and assign the leads.'}
+              ? t("Every lead in the sheet goes to {name}'s pipeline, and also shows in All pipelines.", { name: target.name })
+              : t('Upload an .xlsx / .xls / .csv sheet of leads, match its columns, and assign the leads.')}
           </p>
         </div>
         <div className="spacer" />
         <button className="btn" onClick={() => exportTemplate(state.customColumns)}>
-          <Download size={15} /> Download template
+          <Download size={15} /> {t('Download template')}
         </button>
       </div>
 
@@ -205,11 +207,11 @@ export default function Import() {
         <div className="card card-pad row" style={{ marginBottom: 16, gap: 12 }}>
           <CheckCircle2 size={22} color="#006300" />
           <div>
-            <b>Imported {result.imported} leads</b> from {fileName}.
+            <b>{t('Imported {n} leads', { n: result.imported })}</b> {t('from {file}.', { file: fileName })}
             <div className="small ink2">
-              {result.skipped > 0 && `${result.skipped} duplicates skipped. `}
-              {result.emptyRows > 0 && `${result.emptyRows} rows without a name ignored. `}
-              {result.newCols > 0 && `${result.newCols} custom columns used for extra data.`}
+              {result.skipped > 0 && t('{n} duplicates skipped.', { n: result.skipped }) + ' '}
+              {result.emptyRows > 0 && t('{n} rows without a name ignored.', { n: result.emptyRows }) + ' '}
+              {result.newCols > 0 && t('{n} custom columns used for extra data.', { n: result.newCols })}
             </div>
           </div>
           <span className="spacer" />
@@ -217,12 +219,12 @@ export default function Import() {
             <>
               {result.to && (
                 <button className="btn primary" onClick={() => navigate(`/pipeline${isAdmin ? '/' + result.to : ''}`)}>
-                  <KanbanSquare size={15} /> Open {isAdmin ? `${state.users.find((u) => u.id === result.to)?.name}'s` : 'my'} pipeline
+                  <KanbanSquare size={15} /> {isAdmin ? t("Open {name}'s pipeline", { name: state.users.find((u) => u.id === result.to)?.name }) : t('Open my pipeline')}
                 </button>
               )}
               {isAdmin && (
                 <button className="btn" onClick={() => navigate('/pipeline')}>
-                  All pipelines
+                  {t('All pipelines')}
                 </button>
               )}
             </>
@@ -240,8 +242,8 @@ export default function Import() {
           onDrop={(e) => { e.preventDefault(); setOver(false); load(e.dataTransfer.files[0]); }}
         >
           <FileSpreadsheet size={36} />
-          <div style={{ fontWeight: 650, marginTop: 6 }}>Drop an Excel file here or click to choose</div>
-          <div className="small">The first row must contain the column headers.</div>
+          <div style={{ fontWeight: 650, marginTop: 6 }}>{t('Drop an Excel file here or click to choose')}</div>
+          <div className="small">{t('The first row must contain the column headers.')}</div>
           <input ref={input} type="file" hidden accept=".xlsx,.xls,.csv" onChange={(e) => { load(e.target.files[0]); e.target.value = ''; }} />
         </div>
       ) : (
@@ -249,27 +251,27 @@ export default function Import() {
           <div className="card card-pad row wrap">
             <FileSpreadsheet size={18} />
             <b>{fileName}</b>
-            <span className="muted">{rows.length} rows</span>
+            <span className="muted">{t('{n} rows', { n: rows.length })}</span>
             {wb.names.length > 1 && (
               <select className="select" style={{ width: 200 }} value={sheet} onChange={(e) => pickSheet(wb, e.target.value)}>
                 {wb.names.map((n) => (
-                  <option key={n} value={n}>Sheet: {n} ({wb.sheets[n].length})</option>
+                  <option key={n} value={n}>{t('Sheet: {name} ({n})', { name: n, n: wb.sheets[n].length })}</option>
                 ))}
               </select>
             )}
             <span className="spacer" />
-            <button className="btn" onClick={() => setWb(null)}>Choose another file</button>
+            <button className="btn" onClick={() => setWb(null)}>{t('Choose another file')}</button>
           </div>
 
           <div className="card">
-            <div className="card-head"><h3>1. Match columns</h3></div>
+            <div className="card-head"><h3>{t('1. Match columns')}</h3></div>
             <div className="card-body table-wrap" style={{ padding: '8px 0 0' }}>
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Column in your sheet</th>
-                    <th>Sample values</th>
-                    <th style={{ width: 280 }}>Import as</th>
+                    <th>{t('Column in your sheet')}</th>
+                    <th>{t('Sample values')}</th>
+                    <th style={{ width: 280 }}>{t('Import as')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -292,27 +294,27 @@ export default function Import() {
           </div>
 
           <div className="card card-pad stack">
-            <h3>2. Options</h3>
+            <h3>{t('2. Options')}</h3>
             {target && (
               <div className="row" style={{ gap: 10 }}>
                 <Avatar name={target.name} sm />
-                <span>All leads will be assigned to <b>{target.name}</b>.</span>
+                <span>{t('All leads will be assigned to')} <b>{target.name}</b>.</span>
               </div>
             )}
             {isAdmin && !target && (
               <div className="stack" style={{ gap: 8 }}>
                 <div className="row wrap" style={{ gap: 18 }}>
                   <label className="check">
-                    <input type="radio" checked={assignMode === 'one'} onChange={() => setAssignMode('one')} /> Assign all to one employee
+                    <input type="radio" checked={assignMode === 'one'} onChange={() => setAssignMode('one')} /> {t('Assign all to one employee')}
                   </label>
                   <label className="check">
-                    <input type="radio" checked={assignMode === 'spread'} onChange={() => setAssignMode('spread')} /> Distribute evenly between employees
+                    <input type="radio" checked={assignMode === 'spread'} onChange={() => setAssignMode('spread')} /> {t('Distribute evenly between employees')}
                   </label>
                 </div>
                 {assignMode === 'one' ? (
                   <select className="select" style={{ maxWidth: 300 }} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
                     {state.users.filter((u) => u.active).map((u) => (
-                      <option key={u.id} value={u.id}>{u.name}{u.role === 'admin' ? ' (admin)' : ''}</option>
+                      <option key={u.id} value={u.id}>{u.name}{u.role === 'admin' ? ' ' + t('(admin)') : ''}</option>
                     ))}
                   </select>
                 ) : (
@@ -327,28 +329,28 @@ export default function Import() {
                         {a.name}
                       </label>
                     ))}
-                    {agents.length === 0 && <span className="muted">Add call center employees first.</span>}
+                    {agents.length === 0 && <span className="muted">{t('Add call center employees first.')}</span>}
                   </div>
                 )}
-                <div className="small muted">If the sheet has an "Employee" column (email or name), that wins for the rows where it matches.</div>
+                <div className="small muted">{t('If the sheet has an "Employee" column (email or name), that wins for the rows where it matches.')}</div>
               </div>
             )}
             <label className="field" style={{ maxWidth: 300 }}>
-              <span>Status for rows without a status</span>
+              <span>{t('Status for rows without a status')}</span>
               <select className="select" value={stageId} onChange={(e) => setStageId(e.target.value)}>
                 {stages.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={s.id} value={s.id}>{t(s.name)}</option>
                 ))}
               </select>
             </label>
             <label className="check">
               <input type="checkbox" checked={skipDup} onChange={(e) => setSkipDup(e.target.checked)} />
-              Skip duplicates (same phone or email as an existing lead)
+              {t('Skip duplicates (same phone or email as an existing lead)')}
             </label>
             {error && <div className="error">{error}</div>}
             <div>
               <button className="btn primary" onClick={doImport}>
-                <Upload size={15} /> Import {rows.length} rows
+                <Upload size={15} /> {t('Import {n} rows', { n: rows.length })}
               </button>
             </div>
           </div>

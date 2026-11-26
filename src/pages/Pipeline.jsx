@@ -7,6 +7,7 @@ import LeadModal from '../components/LeadModal';
 import { Avatar, FlagIcons } from '../components/ui';
 import { timeAgo } from '../lib/utils';
 import { exportPipeline } from '../lib/excel';
+import { t } from '../i18n';
 
 export default function Pipeline() {
   const { state, user, actions } = useStore();
@@ -64,45 +65,44 @@ export default function Pipeline() {
         <div>
           <h1 className="row" style={{ gap: 12 }}>
             {ownerName && <Avatar name={ownerName} />}
-            {ownerName ? `${ownerName}'s pipeline` : isAdmin ? 'All pipelines' : 'My pipeline'}
+            {ownerName ? t("{name}'s pipeline", { name: ownerName }) : t(isAdmin ? 'All pipelines' : 'My pipeline')}
           </h1>
           <p>
-            {filtered.length} leads · drag a lead card to another column to change its status
-            {' · drag a column header to move the column'}.
+            {t('{n} leads · drag a lead card to another column to change its status · drag a column header to move the column.', { n: filtered.length })}
           </p>
         </div>
         <div className="spacer" />
         <div className="search">
           <Search size={15} />
-          <input className="input" placeholder="Search name, phone, email…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input" placeholder={t('Search name, phone, email…')} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {isAdmin && (
           <select className="select" style={{ width: 190 }} value={owner} onChange={(e) => setOwner(e.target.value)}>
-            <option value="all">All employees</option>
+            <option value="all">{t('All employees')}</option>
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
               </option>
             ))}
-            <option value={user.id}>{user.name} (me)</option>
+            <option value={user.id}>{user.name} {t('(me)')}</option>
           </select>
         )}
         <ColumnOrderMenu
           stages={stages}
           onMove={moveColumn}
-          note={isAdmin ? 'This is the default order for everyone.' : 'Only changes your own board.'}
+          note={t(isAdmin ? 'This is the default order for everyone.' : 'Only changes your own board.')}
           onReset={!isAdmin && myOrder?.length ? actions.resetMyColumnOrder : null}
         />
         <button
           className="btn"
-          title={ownerName ? `Import an Excel sheet of leads into ${ownerName}'s pipeline` : 'Import an Excel sheet of leads'}
+          title={ownerName ? t("Import an Excel sheet of leads into {name}'s pipeline", { name: ownerName }) : t('Import an Excel sheet of leads')}
           onClick={() => navigate(owner !== 'all' ? `/import?to=${owner}` : '/import')}
         >
-          <FileSpreadsheet size={15} /> Import Excel
+          <FileSpreadsheet size={15} /> {t('Import Excel')}
         </button>
         <button
           className="btn"
-          title={`Download ${ownerName ? `${ownerName}'s` : isAdmin ? 'all' : 'my'} pipeline leads as Excel${q.trim() ? ' (only leads matching the search)' : ''}`}
+          title={t('Download these pipeline leads as Excel') + (q.trim() ? ' ' + t('(only leads matching the search)') : '')}
           onClick={() =>
             exportPipeline(
               filtered,
@@ -111,10 +111,10 @@ export default function Pipeline() {
             )
           }
         >
-          <Download size={15} /> Export
+          <Download size={15} /> {t('Export')}
         </button>
         <button className="btn primary" onClick={() => setOpen({ new: true })}>
-          <Plus size={15} /> Add lead
+          <Plus size={15} /> {t('Add lead')}
         </button>
       </div>
 
@@ -153,7 +153,7 @@ export default function Pipeline() {
               <div
                 className="column-head movable"
                 draggable
-                title="Drag to move this column"
+                title={t('Drag to move this column')}
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', 'stage:' + s.id);
                   e.dataTransfer.effectAllowed = 'move';
@@ -166,7 +166,7 @@ export default function Pipeline() {
               >
                 <GripVertical size={14} className="grip" />
                 <span className="stripe" style={{ background: s.color }} />
-                {s.name}
+                {t(s.name)}
                 <span className="count num">{items.length}</span>
                 {isAdmin && (
                   <button
@@ -174,10 +174,10 @@ export default function Pipeline() {
                     disabled={(stageTotals[s.id] ?? 0) > 0 || stages.length <= 1}
                     title={
                       (stageTotals[s.id] ?? 0) > 0
-                        ? `Can't delete: ${stageTotals[s.id]} lead${stageTotals[s.id] === 1 ? '' : 's'} in this status (all pipelines). Move them first.`
-                        : `Delete "${s.name}"`
+                        ? t("Can't delete: {n} lead(s) in this status (all pipelines). Move them first.", { n: stageTotals[s.id] })
+                        : t('Delete "{name}"', { name: t(s.name) })
                     }
-                    onClick={() => confirm(`Delete the status column "${s.name}"?`) && actions.deleteStage(s.id)}
+                    onClick={() => confirm(t('Delete the status column "{name}"?', { name: t(s.name) })) && actions.deleteStage(s.id)}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -204,12 +204,12 @@ export default function Pipeline() {
                     <div className="meta">
                       {l.phone && (
                         <span className="row" style={{ gap: 5 }}>
-                          <Phone size={11} /> {l.phone}
+                          <Phone size={11} /> <bdi dir="ltr">{l.phone}</bdi>
                         </span>
                       )}
                       {l.email && (
                         <span className="row" style={{ gap: 5 }}>
-                          <Mail size={11} /> {l.email}
+                          <Mail size={11} /> <bdi dir="ltr">{l.email}</bdi>
                         </span>
                       )}
                     </div>
@@ -221,9 +221,9 @@ export default function Pipeline() {
                     </div>
                   </div>
                 ))}
-                {items.length === 0 && <div className="column-empty">Drop leads here</div>}
+                {items.length === 0 && <div className="column-empty">{t('Drop leads here')}</div>}
                 <button className="btn ghost sm" style={{ justifyContent: 'center' }} onClick={() => setOpen({ new: true, stageId: s.id })}>
-                  <Plus size={13} /> Add
+                  <Plus size={13} /> {t('Add')}
                 </button>
               </div>
             </div>
@@ -265,13 +265,13 @@ function ColumnOrderMenu({ stages, onMove, note, onReset }) {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button className={`btn ${open ? 'soft' : ''}`} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <ListOrdered size={15} /> Column order <ChevronDown size={14} />
+        <ListOrdered size={15} /> {t('Column order')} <ChevronDown size={14} />
       </button>
       {open && (
         <div className="dropdown order-menu" onDragOver={(e) => e.stopPropagation()}>
           <div className="dd-head">
-            Column order
-            <div className="small muted" style={{ fontWeight: 400 }}>Drag a name or use the arrows. The board updates instantly. {note}</div>
+            {t('Column order')}
+            <div className="small muted" style={{ fontWeight: 400 }}>{t('Drag a name or use the arrows. The board updates instantly.')} {note}</div>
           </div>
           {stages.map((s, i) => {
             const target = drag && over === s.id && drag !== s.id;
@@ -300,13 +300,13 @@ function ColumnOrderMenu({ stages, onMove, note, onReset }) {
                 onDragEnd={reset}
               >
                 <GripVertical size={14} className="grip" />
-                <span className="num muted small" style={{ width: 18, textAlign: 'right' }}>{i + 1}</span>
+                <span className="num muted small" style={{ width: 18, textAlign: 'end' }}>{i + 1}</span>
                 <span className="stripe" style={{ background: s.color }} />
-                <span className="order-name">{s.name}</span>
-                <button className="icon-btn" title="Move up (left on the board)" disabled={i === 0} onClick={() => onMove(s.id, i - 1)}>
+                <span className="order-name">{t(s.name)}</span>
+                <button className="icon-btn" title={t('Move up (earlier on the board)')} disabled={i === 0} onClick={() => onMove(s.id, i - 1)}>
                   <ArrowUp size={14} />
                 </button>
-                <button className="icon-btn" title="Move down (right on the board)" disabled={i === stages.length - 1} onClick={() => onMove(s.id, i + 1)}>
+                <button className="icon-btn" title={t('Move down (later on the board)')} disabled={i === stages.length - 1} onClick={() => onMove(s.id, i + 1)}>
                   <ArrowDown size={14} />
                 </button>
               </div>
@@ -314,7 +314,7 @@ function ColumnOrderMenu({ stages, onMove, note, onReset }) {
           })}
           {onReset && (
             <button className="btn ghost sm" style={{ margin: '6px 8px 4px', justifyContent: 'center' }} onClick={onReset}>
-              Reset to the default order
+              {t('Reset to the default order')}
             </button>
           )}
         </div>
@@ -341,8 +341,8 @@ function AddStageColumn({ stages, onAdd }) {
   };
   const save = () => {
     const n = name.trim();
-    if (!n) return setErr('Enter a name');
-    if (stages.some((s) => s.name.trim().toLowerCase() === n.toLowerCase())) return setErr('A status with this name already exists');
+    if (!n) return setErr(t('Enter a name'));
+    if (stages.some((s) => s.name.trim().toLowerCase() === n.toLowerCase())) return setErr(t('A status with this name already exists'));
     onAdd({ name: n, color, kind });
     setColor(STAGE_COLORS[(STAGE_COLORS.indexOf(color) + 1) % STAGE_COLORS.length]);
     reset();
@@ -351,17 +351,17 @@ function AddStageColumn({ stages, onAdd }) {
   if (!editing)
     return (
       <button className="column add-column" onClick={() => setEditing(true)}>
-        <Plus size={18} /> Add status
+        <Plus size={18} /> {t('Add status')}
       </button>
     );
 
   return (
     <div className="column add-column editing" onKeyDown={(e) => e.key === 'Escape' && reset()}>
       <div className="stack" style={{ gap: 10, padding: 14 }}>
-        <b>New status column</b>
+        <b>{t('New status column')}</b>
         <input
           className="input"
-          placeholder="e.g. Waiting for documents"
+          placeholder={t('e.g. Waiting for documents')}
           value={name}
           autoFocus
           onChange={(e) => {
@@ -376,23 +376,23 @@ function AddStageColumn({ stages, onAdd }) {
           ))}
         </div>
         <label className="field">
-          <span>Counts in the dashboard as</span>
+          <span>{t('Counts in the dashboard as')}</span>
           <select className="select" value={kind} onChange={(e) => setKind(e.target.value)}>
             {STAGE_KINDS.map((k) => (
-              <option key={k.value} value={k.value}>{k.label}</option>
+              <option key={k.value} value={k.value}>{t(k.label)}</option>
             ))}
           </select>
         </label>
         {err && <div className="error">{err}</div>}
         <div className="row">
           <button className="btn primary sm" onClick={save}>
-            <Check size={14} /> Add column
+            <Check size={14} /> {t('Add column')}
           </button>
           <button className="btn ghost sm" onClick={reset}>
-            <X size={14} /> Cancel
+            <X size={14} /> {t('Cancel')}
           </button>
         </div>
-        <span className="small muted">Added at the end. Use "Column order" to move it.</span>
+        <span className="small muted">{t('Added at the end. Use "Column order" to move it.')}</span>
       </div>
     </div>
   );

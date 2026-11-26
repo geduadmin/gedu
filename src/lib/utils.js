@@ -1,3 +1,5 @@
+import { locale, t } from '../i18n';
+
 export const uid = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -23,7 +25,7 @@ export const shiftMonth = (key, n) => {
 
 export const monthLabel = (key, short = false) => {
   const [y, m] = key.split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleString('en', {
+  return new Date(y, m - 1, 1).toLocaleString(locale(), {
     month: short ? 'short' : 'long',
     year: 'numeric',
   });
@@ -42,11 +44,11 @@ export const inRange = (iso, [a, b]) => {
 
 /* ---------- formatting ---------- */
 export const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  iso ? new Date(iso).toLocaleDateString(locale(), { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 export const fmtDateTime = (iso) =>
   iso
-    ? new Date(iso).toLocaleString('en-GB', {
+    ? new Date(iso).toLocaleString(locale(), {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -56,16 +58,16 @@ export const fmtDateTime = (iso) =>
     : '—';
 
 export const timeAgo = (iso) => {
-  if (!iso) return 'never';
+  if (!iso) return t('never');
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 0) return 'in future';
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 0) return t('in future');
+  if (diff < 60) return t('just now');
+  if (diff < 3600) return t('{n}m ago', { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t('{n}h ago', { n: Math.floor(diff / 3600) });
   const d = Math.floor(diff / 86400);
-  if (d < 30) return `${d}d ago`;
-  if (d < 365) return `${Math.floor(d / 30)}mo ago`;
-  return `${Math.floor(d / 365)}y ago`;
+  if (d < 30) return t('{n}d ago', { n: d });
+  if (d < 365) return t('{n}mo ago', { n: Math.floor(d / 30) });
+  return t('{n}y ago', { n: Math.floor(d / 365) });
 };
 
 export const fmtBytes = (n) => {

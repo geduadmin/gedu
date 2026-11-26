@@ -8,6 +8,7 @@ import { Funnel, HBarChart, LinesChart } from '../components/charts';
 import { Avatar, Empty, greeting, MonthPicker, Tabs } from '../components/ui';
 import EmployeeReport, { ActivityHero, funnelSteps, KpiGrid, TREND_SERIES, withInterestedAll } from '../components/EmployeeReport';
 import MeetingsList from '../components/MeetingsList';
+import { t } from '../i18n';
 
 export default function Dashboard() {
   const { state, user, actions, demoAvailable } = useStore();
@@ -23,16 +24,15 @@ export default function Dashboard() {
       <div className="page-head">
         <div>
           <h1>
-            {greeting()}, {user.name.split(' ')[0]} <span aria-hidden>👋</span>
+            {t('{greeting}, {name}', { greeting: greeting(), name: user.name.split(' ')[0] })} <span aria-hidden>👋</span>
           </h1>
           <p>
-            Here's what's happening with your leads in {monthLabel(month)}
-            {month === currentMonth() ? '' : ' (past month)'}.
+            {t(month === currentMonth() ? "Here's what's happening with your leads in {month}." : "Here's what's happening with your leads in {month} (past month).", { month: monthLabel(month) })}
           </p>
         </div>
         <div className="spacer" />
         <MonthPicker value={month} onChange={setMonth} />
-        <button className="btn no-print" onClick={() => window.print()} title="Print or save the charts as PDF">
+        <button className="btn no-print" onClick={() => window.print()} title={t('Print or save the charts as PDF')}>
           <Printer size={15} /> PDF
         </button>
         <ExportMenu month={month} />
@@ -40,11 +40,11 @@ export default function Dashboard() {
 
       {isEmpty && (
         <div className="notice row wrap no-print" style={{ marginBottom: 20 }}>
-          <span>No data yet. Add employees and leads, or import an Excel sheet{demoAvailable ? ', or load sample data to explore' : ''}.</span>
+          <span>{t('No data yet. Add employees and leads, or import an Excel sheet.')}</span>
           <span className="spacer" />
           {demoAvailable && (
             <button className="btn sm" onClick={actions.loadDemo}>
-              <Database size={13} /> Load sample data
+              <Database size={13} /> {t('Load sample data')}
             </button>
           )}
         </div>
@@ -54,9 +54,9 @@ export default function Dashboard() {
         value={tab}
         onChange={setTab}
         tabs={[
-          { value: 'overview', label: 'Overview', icon: LayoutDashboard },
-          { value: 'employees', label: 'Employees', icon: Users },
-          { value: 'meetings', label: 'Meetings', icon: CalendarClock },
+          { value: 'overview', label: t('Overview'), icon: LayoutDashboard },
+          { value: 'employees', label: t('Employees'), icon: Users },
+          { value: 'meetings', label: t('Meetings'), icon: CalendarClock },
         ]}
       />
 
@@ -76,11 +76,11 @@ export default function Dashboard() {
 }
 
 const REP_METRICS = [
-  { key: 'calls', label: 'Calls', unit: 'calls', sub: (r) => `${r.answeredCalls} answered` },
-  { key: 'followUps', label: 'Follow-ups', unit: 'follow-ups', sub: (r) => `${r.messages} WA messages` },
-  { key: 'meetingsDone', label: 'Meetings done', unit: 'meetings', sub: (r) => `${r.meetingsScheduled} planned` },
-  { key: 'interestedAll', label: 'Interested leads', unit: 'interested', sub: (r) => `${r.very_interested} very interested` },
-  { key: 'registered', label: 'Registrations', unit: 'registered', sub: (r) => `${r.newLeads} new leads` },
+  { key: 'calls', label: 'Calls', unit: 'calls', sub: (r) => t('{n} answered', { n: r.answeredCalls }) },
+  { key: 'followUps', label: 'Follow-ups', unit: 'follow-ups', sub: (r) => t('{n} WA messages', { n: r.messages }) },
+  { key: 'meetingsDone', label: 'Meetings done', unit: 'meetings', sub: (r) => t('{n} planned', { n: r.meetingsScheduled }) },
+  { key: 'interestedAll', label: 'Interested leads', unit: 'interested', sub: (r) => t('{n} very interested', { n: r.very_interested }) },
+  { key: 'registered', label: 'Registrations', unit: 'registered', sub: (r) => t('{n} new leads', { n: r.newLeads }) },
 ];
 
 function TopReps({ board, onPick }) {
@@ -91,16 +91,16 @@ function TopReps({ board, onPick }) {
   return (
     <div className="card">
       <div className="card-head">
-        <h3>Top performing reps</h3>
+        <h3>{t('Top performing reps')}</h3>
         <select className="chip-select no-print" value={metric} onChange={(e) => setMetric(e.target.value)}>
           {REP_METRICS.map((x) => (
-            <option key={x.key} value={x.key}>{x.label}</option>
+            <option key={x.key} value={x.key}>{t(x.label)}</option>
           ))}
         </select>
       </div>
       <div className="card-body" style={{ paddingTop: 6 }}>
         {ranked.length === 0 ? (
-          <Empty icon={Users} title="No employees yet">Add call center employees first.</Empty>
+          <Empty icon={Users} title={t('No employees yet')}>{t('Add call center employees first.')}</Empty>
         ) : (
           <div className="reps">
             {ranked.slice(0, 6).map((r, i) => (
@@ -112,7 +112,7 @@ function TopReps({ board, onPick }) {
                   <div className="rep-bar"><i style={{ width: `${(r[metric] / max) * 100}%` }} /></div>
                 </div>
                 <div className="rep-val num">
-                  <b>{r[metric]} <span style={{ fontWeight: 500 }}>{def.unit}</span></b>
+                  <b>{r[metric]} <span style={{ fontWeight: 500 }}>{t(def.unit)}</span></b>
                   <span>{def.sub(r)}</span>
                 </div>
               </div>
@@ -161,7 +161,7 @@ function Overview({ month, onPickEmployee }) {
 
       <div className="grid-main">
         <div className="card">
-          <div className="card-head"><h3>Lead funnel</h3><span className="small muted">{monthLabel(month)}</span></div>
+          <div className="card-head"><h3>{t('Lead funnel')}</h3><span className="small muted">{monthLabel(month)}</span></div>
           <div className="card-body"><Funnel steps={funnelSteps(m)} /></div>
         </div>
         <TopReps board={board} onPick={onPickEmployee} />
@@ -169,11 +169,11 @@ function Overview({ month, onPickEmployee }) {
 
       <div className="grid-2">
         <div className="card">
-          <div className="card-head"><h3>Interest & registrations</h3><span className="small muted">last 6 months</span></div>
+          <div className="card-head"><h3>{t('Interest & registrations')}</h3><span className="small muted">{t('last 6 months')}</span></div>
           <div className="card-body"><LinesChart data={trend} xKey="month" series={TREND_SERIES} /></div>
         </div>
         <div className="card">
-          <div className="card-head"><h3>Outcomes this month</h3></div>
+          <div className="card-head"><h3>{t('Outcomes this month')}</h3></div>
           <div className="card-body">
             <HBarChart data={OUTCOMES.map((o) => ({ name: o.label, value: m[o.key] }))} height={280} />
           </div>
@@ -183,20 +183,20 @@ function Overview({ month, onPickEmployee }) {
       <div className="grid-main">
         <div className="card">
           <div className="card-head">
-            <h3><Trophy size={15} style={{ verticalAlign: -2, color: '#c98500' }} /> Employee leaderboard</h3>
-            <span className="small muted">Highest in purple · click a row</span>
+            <h3><Trophy size={15} style={{ verticalAlign: -2, color: '#c98500' }} /> {t('Employee leaderboard')}</h3>
+            <span className="small muted">{t('Highest in purple · click a row')}</span>
           </div>
           <div className="card-body" style={{ padding: '12px 0 0' }}>
             {board.length === 0 ? (
-              <Empty icon={Users} title="No call center employees yet">Add them under Employees.</Empty>
+              <Empty icon={Users} title={t('No call center employees yet')}>{t('Add them under Employees.')}</Empty>
             ) : (
               <div className="table-wrap">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Employee</th>
+                      <th>{t('Employee')}</th>
                       {cols.map(([k, label]) => (
-                        <th key={k} style={{ textAlign: 'right' }}>{label}</th>
+                        <th key={k} style={{ textAlign: 'end' }}>{t(label)}</th>
                       ))}
                     </tr>
                   </thead>
@@ -206,11 +206,11 @@ function Overview({ month, onPickEmployee }) {
                         <td>
                           <span className="row">
                             <Avatar name={r.user.name} sm /> <b style={{ fontWeight: 600 }}>{r.user.name}</b>
-                            {!r.user.active && <span className="badge">inactive</span>}
+                            {!r.user.active && <span className="badge">{t('inactive')}</span>}
                           </span>
                         </td>
                         {cols.map(([k]) => (
-                          <td key={k} className={`num ${r[k] > 0 && r[k] === max[k] ? 'best' : ''}`} style={{ textAlign: 'right' }}>
+                          <td key={k} className={`num ${r[k] > 0 && r[k] === max[k] ? 'best' : ''}`} style={{ textAlign: 'end' }}>
                             {r[k]}
                           </td>
                         ))}
@@ -223,14 +223,13 @@ function Overview({ month, onPickEmployee }) {
           </div>
         </div>
         <div className="card">
-          <div className="card-head"><h3>Current pipeline</h3><span className="small muted">all leads, today</span></div>
+          <div className="card-head"><h3>{t('Current pipeline')}</h3><span className="small muted">{t('all leads, today')}</span></div>
           <div className="card-body"><HBarChart data={pipeline} /></div>
         </div>
       </div>
 
       <p className="small muted" style={{ margin: 0 }}>
-        How it's counted: outcomes (interested, registered, …) = leads moved into that status during the month. Calls, messages and follow-ups =
-        activities logged in the month. Meetings = meetings dated in the month.
+        {t("How it's counted: outcomes (interested, registered, …) = leads moved into that status during the month. Calls, messages and follow-ups = activities logged in the month. Meetings = meetings dated in the month.")}
       </p>
     </div>
   );
@@ -242,7 +241,7 @@ function EmployeesTab({ month, selected, onSelect }) {
   if (!agents.length)
     return (
       <div className="card">
-        <Empty icon={Users} title="No call center employees yet">Add them from the Employees page.</Empty>
+        <Empty icon={Users} title={t('No call center employees yet')}>{t('Add them from the Employees page.')}</Empty>
       </div>
     );
   return (
@@ -290,20 +289,20 @@ function ExportMenu({ month }) {
   const items = [
     {
       icon: FileSpreadsheet,
-      title: `${monthLabel(month)} report`,
-      text: 'Summary, employees, daily activity, pipeline, meetings and new leads of this month.',
+      title: t('{month} report', { month: monthLabel(month) }),
+      text: t('Summary, employees, daily activity, pipeline, meetings and new leads of this month.'),
       run: () => exportMonthReport(state, month, lookups),
     },
     {
       icon: KanbanSquare,
-      title: 'All pipelines',
-      text: 'Every lead by status, with a sheet for each employee.',
+      title: t('All pipelines'),
+      text: t('Every lead by status, with a sheet for each employee.'),
       run: () => exportPipeline(state.leads, { owner: null, customColumns: state.customColumns }, lookups),
     },
     {
       icon: Database,
-      title: 'All data (everything)',
-      text: 'All leads, full call & activity log, meetings, employees, statuses and month-by-month statistics.',
+      title: t('All data (everything)'),
+      text: t('All leads, full call & activity log, meetings, employees, statuses and month-by-month statistics.'),
       run: () => exportAllData(state, lookups),
     },
   ];
@@ -311,11 +310,11 @@ function ExportMenu({ month }) {
   return (
     <div ref={ref} className="no-print" style={{ position: 'relative' }}>
       <button className="btn primary" disabled={busy} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <Download size={15} /> {busy ? 'Preparing…' : 'Export'} <ChevronDown size={14} />
+        <Download size={15} /> {t(busy ? 'Preparing…' : 'Export')} <ChevronDown size={14} />
       </button>
       {open && (
         <div className="dropdown" style={{ width: 340 }}>
-          <div className="dd-head">Export to Excel</div>
+          <div className="dd-head">{t('Export to Excel')}</div>
           {items.map((it) => (
             <button key={it.title} className="dd-item" style={{ alignItems: 'flex-start' }} onClick={() => run(it.run)}>
               <div className="tl-icon" style={{ width: 32, height: 32 }}>

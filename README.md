@@ -23,6 +23,7 @@ Optional: a local, git-ignored `src/store/demo.local.js` generates sample data f
   - **Employees:** each employee's monthly statistics and meetings.
   - **Meetings:** meetings done and upcoming.
   - **Export:** Excel report (several sheets) and Print / PDF.
+- **Arabic / English:** the EN | عربي switch (top bar and login page) changes the whole interface, right-to-left in Arabic. Each person's choice is remembered in their browser. Translations are in `src/i18n/ar.js`, keyed by the English text; default status and certificate names are translated, while names typed in Settings show exactly as written. Excel exports stay in English.
 
 ## How the numbers are counted
 

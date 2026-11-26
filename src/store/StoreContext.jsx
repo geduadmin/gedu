@@ -3,6 +3,7 @@ import { loadState, saveState } from '../lib/idb';
 import { api, checkHealth } from '../lib/api';
 import { applyDocs, compactOps, diffState, emptyRemoteState, fetchChanges } from './remote';
 import { nowIso, readFileAsDataUrl, uid } from '../lib/utils';
+import { t } from '../i18n';
 import { ACTIVITY_TYPES, createInitialState, emptyFlags, migrate } from './defaults';
 // Sample-data generator is a LOCAL-ONLY file (git-ignored). When it isn't there — e.g. on
 // GitHub / Vercel — the app starts clean and the "Load sample data" buttons are hidden.
@@ -145,16 +146,16 @@ export function StoreProvider({ children }) {
             // The server refused the change: show the error and reload the real data.
             r.queue = [];
             setSyncStatus('error');
-            setSyncError(e.message);
+            setSyncError(t(e.message));
             r.flushing = false;
             await loadRemote();
             setSyncStatus('error');
-            setSyncError(`${e.message} The change was not saved.`);
+            setSyncError(`${t(e.message)} ${t('The change was not saved.')}`);
             return;
           }
           // network / server problem: keep the changes and retry
           setSyncStatus('error');
-          setSyncError(`${e.message}. Retrying…`);
+          setSyncError(`${t(e.message)}. ${t('Retrying…')}`);
           r.retry = setTimeout(() => flush(), 5000);
           return;
         }
@@ -444,7 +445,7 @@ export function StoreProvider({ children }) {
       },
       /** Upload a file to a lead. Returns an error message, or null. */
       async uploadFile(leadId, file) {
-        if (file.size > maxFileBytes) return `${file.name} is larger than ${maxFileBytes / 1024 / 1024} MB`;
+        if (file.size > maxFileBytes) return t('{name} is larger than {n} MB', { name: file.name, n: maxFileBytes / 1024 / 1024 });
         if (isRemote) {
           try {
             const res = await api(`files?leadId=${encodeURIComponent(leadId)}&name=${encodeURIComponent(file.name)}`, {
@@ -455,7 +456,7 @@ export function StoreProvider({ children }) {
             addFileMeta(leadId, { name: file.name, size: file.size, type: file.type, path: res.path });
             return null;
           } catch (e) {
-            return `${file.name}: ${e.message}`;
+            return `${file.name}: ${t(e.message)}`;
           }
         }
         addFileMeta(leadId, { name: file.name, size: file.size, type: file.type, dataUrl: await readFileAsDataUrl(file) });

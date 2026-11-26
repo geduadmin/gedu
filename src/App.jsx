@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { StoreProvider, useStore } from './store/StoreContext';
+import { LangProvider, t } from './i18n';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -29,7 +30,7 @@ function Home() {
 
 function AppRoutes() {
   const { state, mode, health } = useStore();
-  if (!state) return <div className="empty">Loading…</div>;
+  if (!state) return <div className="empty">{t('Loading…')}</div>;
   if (mode === 'remote' && !(health?.db && health?.session)) return <Setup health={health} />;
   return (
     <Routes>
@@ -58,9 +59,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <StoreProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <LangProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </LangProvider>
     </StoreProvider>
   );
 }

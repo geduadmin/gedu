@@ -6,6 +6,7 @@ import { monthLabel, shiftMonth } from '../lib/utils';
 import { AreaHero, Funnel, HBarChart, LinesChart } from './charts';
 import { Avatar, Delta, Kpi, Stat } from './ui';
 import MeetingsList from './MeetingsList';
+import { locale, t } from '../i18n';
 
 export const TREND_SERIES = [
   { key: 'interestedAll', label: 'Interested (incl. very)' },
@@ -20,23 +21,29 @@ export const ACTIVITY_METRICS = [
   { key: 'messages', label: 'WhatsApp messages' },
 ];
 
+/** Short day label (e.g. "5 Mar") in the current language. */
+const dayLabel = (monthKey, d) => {
+  const [y, m] = monthKey.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(locale(), { month: 'short', day: 'numeric' });
+};
+
 export const withInterestedAll = (rows) => rows.map((r) => ({ ...r, interestedAll: r.interested + r.very_interested }));
 
 export function KpiGrid({ m, prev }) {
   return (
     <div className="stack" style={{ gap: 20 }}>
       <div className="kpis">
-        <Kpi label="New leads" icon={UserPlus} tone="indigo" value={m.newLeads} prev={prev?.newLeads} />
-        <Kpi label="Interested" icon={ThumbsUp} tone="green" value={m.interested + m.very_interested} prev={prev && prev.interested + prev.very_interested} />
-        <Kpi label="Registered at university" icon={GraduationCap} tone="purple" value={m.registered} prev={prev?.registered} />
-        <Kpi label="Calls made" icon={PhoneCall} tone="orange" value={m.calls} prev={prev?.calls} />
+        <Kpi label={t('New leads')} icon={UserPlus} tone="indigo" value={m.newLeads} prev={prev?.newLeads} />
+        <Kpi label={t('Interested')} icon={ThumbsUp} tone="green" value={m.interested + m.very_interested} prev={prev && prev.interested + prev.very_interested} />
+        <Kpi label={t('Registered at university')} icon={GraduationCap} tone="purple" value={m.registered} prev={prev?.registered} />
+        <Kpi label={t('Calls made')} icon={PhoneCall} tone="orange" value={m.calls} prev={prev?.calls} />
       </div>
       <div className="card stat-strip">
-        <Stat label="Very interested" icon={Star} tone="amber" value={m.very_interested} />
-        <Stat label="Not interested" icon={ThumbsDown} tone="red" value={m.not_interested} />
-        <Stat label="Follow-ups" icon={Repeat} tone="blue" value={m.followUps} />
-        <Stat label="WhatsApp messages" icon={MessageCircle} tone="teal" value={m.messages} />
-        <Stat label="Meetings done" icon={CalendarCheck} tone="pink" value={m.meetingsDone} />
+        <Stat label={t('Very interested')} icon={Star} tone="amber" value={m.very_interested} />
+        <Stat label={t('Not interested')} icon={ThumbsDown} tone="red" value={m.not_interested} />
+        <Stat label={t('Follow-ups')} icon={Repeat} tone="blue" value={m.followUps} />
+        <Stat label={t('WhatsApp messages')} icon={MessageCircle} tone="teal" value={m.messages} />
+        <Stat label={t('Meetings done')} icon={CalendarCheck} tone="pink" value={m.meetingsDone} />
       </div>
     </div>
   );
@@ -59,26 +66,26 @@ export function ActivityHero({ m, prev, monthKey, title = 'Activity overview' })
   return (
     <div className="card">
       <div className="card-head">
-        <h3>{title}</h3>
+        <h3>{t(title)}</h3>
         <select className="chip-select no-print" value={metric} onChange={(e) => setMetric(e.target.value)}>
           {ACTIVITY_METRICS.map((x) => (
-            <option key={x.key} value={x.key}>{x.label}</option>
+            <option key={x.key} value={x.key}>{t(x.label)}</option>
           ))}
         </select>
       </div>
       <div className="card-body">
-        <div className="hero-label">{def.label} in {monthLabel(monthKey)}</div>
+        <div className="hero-label">{t('{what} in {month}', { what: t(def.label), month: monthLabel(monthKey) })}</div>
         <div className="row" style={{ gap: 12, alignItems: 'baseline' }}>
           <div className="hero-value num">{total.toLocaleString()}</div>
-          <Delta value={total} prev={prev[metric]} suffix={`vs ${monthLabel(shiftMonth(monthKey, -1), true)}`} />
+          <Delta value={total} prev={prev[metric]} suffix={t('vs {month}', { month: monthLabel(shiftMonth(monthKey, -1), true) })} />
         </div>
         <AreaHero
           data={m.daily}
           xKey="day"
           yKey={metric}
-          name={def.label}
-          tickFormatter={(d) => `${monthLabel(monthKey, true).split(' ')[0]} ${d}`}
-          labelFormatter={(d) => `${monthLabel(monthKey, true).split(' ')[0]} ${d}`}
+          name={t(def.label)}
+          tickFormatter={(d) => dayLabel(monthKey, d)}
+          labelFormatter={(d) => dayLabel(monthKey, d)}
         />
       </div>
     </div>
@@ -111,7 +118,7 @@ export default function EmployeeReport({ userId, monthKey }) {
         <div>
           <h2>{u.name}</h2>
           <div className="small ink2">
-            {u.email} {u.phone && `· ${u.phone}`}
+            <bdi dir="ltr">{u.email}</bdi> {u.phone && <>· <bdi dir="ltr">{u.phone}</bdi></>}
           </div>
         </div>
         <div className="spacer" />
@@ -124,7 +131,7 @@ export default function EmployeeReport({ userId, monthKey }) {
             ['Blocked us', m.blocked],
           ].map(([k, v]) => (
             <div key={k}>
-              <div className="small ink2">{k}</div>
+              <div className="small ink2">{t(k)}</div>
               <b className="num" style={{ fontSize: 20 }}>{v}</b>
             </div>
           ))}
@@ -136,11 +143,11 @@ export default function EmployeeReport({ userId, monthKey }) {
 
       <div className="grid-2">
         <div className="card">
-          <div className="card-head"><h3>Lead funnel</h3><span className="small muted">{monthLabel(monthKey)}</span></div>
+          <div className="card-head"><h3>{t('Lead funnel')}</h3><span className="small muted">{monthLabel(monthKey)}</span></div>
           <div className="card-body"><Funnel steps={funnelSteps(m)} /></div>
         </div>
         <div className="card">
-          <div className="card-head"><h3>Outcomes this month</h3></div>
+          <div className="card-head"><h3>{t('Outcomes this month')}</h3></div>
           <div className="card-body">
             <HBarChart data={OUTCOMES.map((o) => ({ name: o.label, value: m[o.key] }))} height={290} />
           </div>
@@ -148,16 +155,16 @@ export default function EmployeeReport({ userId, monthKey }) {
       </div>
       <div className="grid-2">
         <div className="card">
-          <div className="card-head"><h3>Last 6 months</h3></div>
+          <div className="card-head"><h3>{t('Last 6 months')}</h3></div>
           <div className="card-body"><LinesChart data={trend} xKey="month" series={TREND_SERIES} /></div>
         </div>
         <div className="card">
-          <div className="card-head"><h3>Current pipeline</h3><span className="small muted">today</span></div>
+          <div className="card-head"><h3>{t('Current pipeline')}</h3><span className="small muted">{t('today')}</span></div>
           <div className="card-body"><HBarChart data={pipeline} /></div>
         </div>
       </div>
 
-      <div className="section-title">Meetings in {monthLabel(monthKey)}</div>
+      <div className="section-title">{t('Meetings in {month}', { month: monthLabel(monthKey) })}</div>
       <MeetingsList monthKey={monthKey} agentId={userId} />
     </div>
   );

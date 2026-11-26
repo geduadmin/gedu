@@ -7,6 +7,7 @@ import { fileHref, useLookups, useStore } from '../store/StoreContext';
 import { ACTIVITY_TYPES, FLAGS, GENDERS, LOGGABLE_ACTIVITIES } from '../store/defaults';
 import { fmtBytes, fmtDateTime, fromLocalInput, timeAgo, toLocalInput } from '../lib/utils';
 import { Modal, StageBadge, Tabs } from './ui';
+import { t } from '../i18n';
 
 
 const ACT_ICONS = {
@@ -74,8 +75,8 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
   const setCustom = (k, v) => setDraft((d) => ({ ...d, custom: { ...d.custom, [k]: v } }));
 
   const save = () => {
-    if (!draft.name.trim()) return setError('Name is required');
-    if (!draft.phone.trim() && !draft.email.trim()) return setError('Add a phone number or an email');
+    if (!draft.name.trim()) return setError(t('Name is required'));
+    if (!draft.phone.trim() && !draft.email.trim()) return setError(t('Add a phone number or an email'));
     if (isNew) {
       actions.addLead(draft);
       onClose();
@@ -98,7 +99,7 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
   };
 
   const remove = () => {
-    if (confirm(`Delete lead "${lead.name}"? This also deletes its activity and meetings.`)) {
+    if (confirm(t('Delete lead "{name}"? This also deletes its activity and meetings.', { name: lead.name }))) {
       actions.deleteLeads([lead.id]);
       onClose();
     }
@@ -110,64 +111,64 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
     <div className="stack">
       <div className="form-grid">
         <label className="field">
-          <span>Full name *</span>
+          <span>{t('Full name *')}</span>
           <input className="input" value={draft.name} onChange={(e) => set('name', e.target.value)} autoFocus />
         </label>
         <label className="field">
-          <span>Phone</span>
-          <input className="input" value={draft.phone} onChange={(e) => set('phone', e.target.value)} />
+          <span>{t('Phone')}</span>
+          <input className="input" dir="ltr" value={draft.phone} onChange={(e) => set('phone', e.target.value)} />
         </label>
         <label className="field">
-          <span>Email</span>
+          <span>{t('Email')}</span>
           <input className="input" type="email" value={draft.email} onChange={(e) => set('email', e.target.value)} />
         </label>
         <label className="field">
-          <span>Gender</span>
+          <span>{t('Gender')}</span>
           <select className="select" value={draft.gender} onChange={(e) => set('gender', e.target.value)}>
             <option value="">—</option>
             {GENDERS.map((g) => (
-              <option key={g}>{g}</option>
+              <option key={g} value={g}>{t(g)}</option>
             ))}
           </select>
         </label>
         <label className="field">
-          <span>City</span>
+          <span>{t('City')}</span>
           <input className="input" value={draft.city} onChange={(e) => set('city', e.target.value)} />
         </label>
         <label className="field">
-          <span>Country</span>
+          <span>{t('Country')}</span>
           <input className="input" value={draft.country} onChange={(e) => set('country', e.target.value)} />
         </label>
         <label className="field">
-          <span>Nationality</span>
+          <span>{t('Nationality')}</span>
           <input className="input" value={draft.nationality} onChange={(e) => set('nationality', e.target.value)} />
         </label>
         <label className="field">
-          <span>Last certificate stage</span>
+          <span>{t('Last certificate stage')}</span>
           <select className="select" value={draft.certificateStage} onChange={(e) => set('certificateStage', e.target.value)}>
             <option value="">—</option>
             {[...new Set([...state.certificateStages, draft.certificateStage].filter(Boolean))].map((c) => (
-              <option key={c}>{c}</option>
+              <option key={c} value={c}>{t(c)}</option>
             ))}
           </select>
         </label>
         <label className="field">
-          <span>Stage / status</span>
+          <span>{t('Stage / status')}</span>
           <select className="select" value={draft.stageId ?? ''} onChange={(e) => set('stageId', e.target.value)}>
             {stages.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
+                {t(s.name)}
               </option>
             ))}
           </select>
         </label>
         {isAdmin && (
           <label className="field">
-            <span>Assigned employee</span>
+            <span>{t('Assigned employee')}</span>
             <select className="select" value={draft.ownerId} onChange={(e) => set('ownerId', e.target.value)}>
               {ownerOptions.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name} {u.role === 'admin' ? '(admin)' : ''}
+                  {u.name} {u.role === 'admin' ? t('(admin)') : ''}
                 </option>
               ))}
             </select>
@@ -175,23 +176,23 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
         )}
         {!isNew && (
           <label className="field">
-            <span>Date created</span>
+            <span>{t('Date created')}</span>
             <input className="input" type="datetime-local" value={toLocalInput(draft.createdAt)} onChange={(e) => set('createdAt', fromLocalInput(e.target.value) ?? lead.createdAt)} />
           </label>
         )}
         <label className="field">
-          <span>Last contact</span>
+          <span>{t('Last contact')}</span>
           <input className="input" type="datetime-local" value={toLocalInput(draft.lastContactAt)} onChange={(e) => set('lastContactAt', fromLocalInput(e.target.value))} />
         </label>
       </div>
 
       <div>
-        <div className="section-title" style={{ marginTop: 6 }}>Contact status</div>
+        <div className="section-title" style={{ marginTop: 6 }}>{t('Contact status')}</div>
         <div className="row wrap" style={{ gap: '10px 22px' }}>
           {FLAGS.map((f) => (
             <label className="check" key={f.key}>
               <input type="checkbox" checked={!!draft.flags[f.key]} onChange={(e) => setFlag(f.key, e.target.checked)} />
-              {f.label}
+              {t(f.label)}
             </label>
           ))}
         </div>
@@ -199,7 +200,7 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
 
       {state.customColumns.length > 0 && (
         <div>
-          <div className="section-title" style={{ marginTop: 6 }}>Extra data</div>
+          <div className="section-title" style={{ marginTop: 6 }}>{t('Extra data')}</div>
           <div className="form-grid">
             {state.customColumns.map((c) => (
               <label className="field" key={c.id}>
@@ -212,7 +213,7 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
       )}
 
       <label className="field">
-        <span>Notes</span>
+        <span>{t('Notes')}</span>
         <textarea className="textarea" value={draft.notes} onChange={(e) => set('notes', e.target.value)} />
       </label>
       {error && <div className="error">{error}</div>}
@@ -222,16 +223,16 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
   const footer = (
     <>
       {!isNew && (
-        <button className="btn danger" onClick={remove} style={{ marginRight: 'auto' }}>
-          <Trash2 size={15} /> Delete
+        <button className="btn danger" onClick={remove} style={{ marginInlineEnd: 'auto' }}>
+          <Trash2 size={15} /> {t('Delete')}
         </button>
       )}
       <button className="btn" onClick={onClose}>
-        Cancel
+        {t('Cancel')}
       </button>
       {tab === 'details' && (
         <button className="btn primary" onClick={save}>
-          {isNew ? 'Create lead' : 'Save changes'}
+          {t(isNew ? 'Create lead' : 'Save changes')}
         </button>
       )}
     </>
@@ -244,7 +245,7 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
       footer={footer}
       title={
         isNew ? (
-          'New lead'
+          t('New lead')
         ) : (
           <span className="row">
             {lead.name} <StageBadge stage={stageById[lead.stageId]} />
@@ -257,10 +258,10 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
           value={tab}
           onChange={setTab}
           tabs={[
-            { value: 'details', label: 'Details', icon: FileText },
-            { value: 'activity', label: 'Activity & calls', icon: PhoneCall },
-            { value: 'files', label: `Files (${lead.files.length})`, icon: Paperclip },
-            { value: 'meetings', label: 'Meetings', icon: CalendarClock },
+            { value: 'details', label: t('Details'), icon: FileText },
+            { value: 'activity', label: t('Activity & calls'), icon: PhoneCall },
+            { value: 'files', label: t('Files ({n})', { n: lead.files.length }), icon: Paperclip },
+            { value: 'meetings', label: t('Meetings'), icon: CalendarClock },
           ]}
         />
       )}
@@ -270,7 +271,7 @@ export default function LeadModal({ leadId, defaultStageId, defaultOwnerId, onCl
       {tab === 'meetings' && <MeetingsTab lead={lead} />}
       {!isNew && tab === 'details' && (
         <div className="small muted" style={{ marginTop: 12 }}>
-          Owner: {userById[lead.ownerId]?.name ?? '—'} · Created {fmtDateTime(lead.createdAt)} · Last contact {timeAgo(lead.lastContactAt)}
+          {t('Owner: {owner} · Created {created} · Last contact {last}', { owner: userById[lead.ownerId]?.name ?? '—', created: fmtDateTime(lead.createdAt), last: timeAgo(lead.lastContactAt) })}
         </div>
       )}
     </Modal>
@@ -297,10 +298,10 @@ function ActivityTab({ lead }) {
   };
 
   const describe = (a) => {
-    if (a.type === 'stage_change') return `Moved to ${stageById[a.meta?.to]?.name ?? 'a deleted stage'}`;
-    let s = ACTIVITY_TYPES[a.type]?.label ?? a.type;
-    if (a.meta?.answered === true) s += ' — answered';
-    if (a.meta?.answered === false) s += ' — no answer';
+    if (a.type === 'stage_change') return t('Moved to {stage}', { stage: stageById[a.meta?.to] ? t(stageById[a.meta.to].name) : t('a deleted stage') });
+    let s = t(ACTIVITY_TYPES[a.type]?.label ?? a.type);
+    if (a.meta?.answered === true) s += ' — ' + t('answered');
+    if (a.meta?.answered === false) s += ' — ' + t('no answer');
     return s;
   };
 
@@ -309,25 +310,25 @@ function ActivityTab({ lead }) {
       <div className="card card-pad" style={{ background: 'var(--surface-2)' }}>
         <div className="row wrap">
           <select className="select" style={{ width: 190 }} value={type} onChange={(e) => setType(e.target.value)}>
-            {LOGGABLE_ACTIVITIES.map((t) => (
-              <option key={t} value={t}>
-                {ACTIVITY_TYPES[t].label}
+            {LOGGABLE_ACTIVITIES.map((k) => (
+              <option key={k} value={k}>
+                {t(ACTIVITY_TYPES[k].label)}
               </option>
             ))}
           </select>
           {isCall && (
             <select className="select" style={{ width: 140 }} value={answered} onChange={(e) => setAnswered(e.target.value)}>
-              <option value="yes">Answered</option>
-              <option value="no">No answer</option>
+              <option value="yes">{t('Answered')}</option>
+              <option value="no">{t('No answer')}</option>
             </select>
           )}
-          <input className="input" style={{ flex: 1, minWidth: 180 }} placeholder="Note (optional)" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && log()} />
+          <input className="input" style={{ flex: 1, minWidth: 180 }} placeholder={t('Note (optional)')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && log()} />
           <button className="btn primary" onClick={log}>
-            <Plus size={15} /> Log
+            <Plus size={15} /> {t('Log')}
           </button>
         </div>
         <div className="small muted" style={{ marginTop: 8 }}>
-          Logging a call, message or follow-up updates "last contact" and counts in the employee statistics.
+          {t('Logging a call, message or follow-up updates "last contact" and counts in the employee statistics.')}
         </div>
       </div>
       <div className="timeline">
@@ -342,11 +343,11 @@ function ActivityTab({ lead }) {
                 <div className="what">{describe(a)}</div>
                 {a.meta?.text && <div className="ink2">{a.meta.text}</div>}
                 <div className="when">
-                  {fmtDateTime(a.at)} · {userById[a.userId]?.name ?? 'Unknown'}
+                  {fmtDateTime(a.at)} · {userById[a.userId]?.name ?? t('Unknown')}
                 </div>
               </div>
               {LOGGABLE_ACTIVITIES.includes(a.type) && (
-                <button className="icon-btn" title="Delete entry" onClick={() => confirm('Delete this entry?') && actions.deleteActivity(a.id)}>
+                <button className="icon-btn" title={t('Delete entry')} onClick={() => confirm(t('Delete this entry?')) && actions.deleteActivity(a.id)}>
                   <Trash2 size={14} />
                 </button>
               )}
@@ -396,12 +397,12 @@ function FilesTab({ lead }) {
         }}
       >
         <Upload size={22} />
-        <div>{uploading ? `Uploading ${uploading} file${uploading === 1 ? '' : 's'}…` : `Drop files here or click to upload (max ${actions.maxFileBytes / 1024 / 1024} MB each)`}</div>
+        <div>{uploading ? t('Uploading {n} file(s)…', { n: uploading }) : t('Drop files here or click to upload (max {n} MB each)', { n: actions.maxFileBytes / 1024 / 1024 })}</div>
         <input ref={input} type="file" multiple hidden onChange={(e) => { add(e.target.files); e.target.value = ''; }} />
       </div>
       {err && <div className="error">{err}</div>}
       {lead.files.length === 0 ? (
-        <div className="muted small">No files yet.</div>
+        <div className="muted small">{t('No files yet.')}</div>
       ) : (
         <table className="table">
           <tbody>
@@ -414,14 +415,14 @@ function FilesTab({ lead }) {
                 </td>
                 <td className="muted">{fmtBytes(f.size)}</td>
                 <td className="muted">{fmtDateTime(f.uploadedAt)}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <a className="icon-btn" href={fileHref(f)} download={f.name} title="Download">
+                <td style={{ textAlign: 'end' }}>
+                  <a className="icon-btn" href={fileHref(f)} download={f.name} title={t('Download')}>
                     <Download size={15} />
                   </a>
-                  <button className="icon-btn" title="Delete" onClick={async () => {
-                      if (!confirm(`Delete ${f.name}?`)) return;
+                  <button className="icon-btn" title={t('Delete')} onClick={async () => {
+                      if (!confirm(t('Delete {name}?', { name: f.name }))) return;
                       const e = await actions.removeFile(lead.id, f);
-                      if (e) setErr(e);
+                      if (e) setErr(t(e));
                     }}>
                     <Trash2 size={15} />
                   </button>
@@ -438,7 +439,7 @@ function FilesTab({ lead }) {
 function MeetingsTab({ lead }) {
   const { state, user, actions } = useStore();
   const { userById } = useLookups();
-  const [title, setTitle] = useState('Admission consultation');
+  const [title, setTitle] = useState(() => t('Admission consultation'));
   const [when, setWhen] = useState('');
   const [notes, setNotes] = useState('');
   const list = state.meetings.filter((m) => m.leadId === lead.id).sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
@@ -448,7 +449,7 @@ function MeetingsTab({ lead }) {
     actions.addMeeting({
       leadId: lead.id,
       agentId: user.role === 'admin' ? lead.ownerId : user.id,
-      title: title.trim() || 'Meeting',
+      title: title.trim() || t('Meeting'),
       scheduledAt: fromLocalInput(when),
       notes,
     });
@@ -461,34 +462,34 @@ function MeetingsTab({ lead }) {
       <div className="card card-pad" style={{ background: 'var(--surface-2)' }}>
         <div className="form-grid">
           <label className="field">
-            <span>Title</span>
+            <span>{t('Title')}</span>
             <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
           </label>
           <label className="field">
-            <span>Date & time</span>
+            <span>{t('Date & time')}</span>
             <input className="input" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
           </label>
           <label className="field full">
-            <span>Notes</span>
+            <span>{t('Notes')}</span>
             <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </label>
         </div>
         <div className="row" style={{ marginTop: 10 }}>
           <button className="btn primary" disabled={!when} onClick={add}>
-            <CalendarPlus size={15} /> Schedule meeting
+            <CalendarPlus size={15} /> {t('Schedule meeting')}
           </button>
         </div>
       </div>
       {list.length === 0 ? (
-        <div className="muted small">No meetings for this lead yet.</div>
+        <div className="muted small">{t('No meetings for this lead yet.')}</div>
       ) : (
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Title</th>
-              <th>Employee</th>
-              <th>Status</th>
+              <th>{t('Date')}</th>
+              <th>{t('Title')}</th>
+              <th>{t('Employee')}</th>
+              <th>{t('Status')}</th>
               <th />
             </tr>
           </thead>
@@ -503,13 +504,13 @@ function MeetingsTab({ lead }) {
                 <td>{userById[m.agentId]?.name}</td>
                 <td>
                   <select className="select" style={{ width: 125 }} value={m.status} onChange={(e) => actions.updateMeeting(m.id, { status: e.target.value })}>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="done">Done</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="scheduled">{t('Scheduled')}</option>
+                    <option value="done">{t('Done')}</option>
+                    <option value="cancelled">{t('Cancelled')}</option>
                   </select>
                 </td>
                 <td>
-                  <button className="icon-btn" onClick={() => confirm('Delete this meeting?') && actions.deleteMeeting(m.id)}>
+                  <button className="icon-btn" title={t('Delete')} onClick={() => confirm(t('Delete this meeting?')) && actions.deleteMeeting(m.id)}>
                     <Trash2 size={14} />
                   </button>
                 </td>
